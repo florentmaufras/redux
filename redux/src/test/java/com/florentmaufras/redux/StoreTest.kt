@@ -4,4 +4,4 @@ class StoreTest(
     initialName: String,
     override val reducer: ReducerTest,
     override val effectHandler: EffectHandlerTest
-) : Store<ActionTest, StateTest, EffectTest, ReducerTest, EffectHandlerTest>(StateTest(initialName))
+) : Store<ActionTest, StateTest, EffectTest>(StateTest(initialName))

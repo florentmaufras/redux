@@ -7,12 +7,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-abstract class Store<Action : com.florentmaufras.redux.Action, State : com.florentmaufras.redux.State, Effect : com.florentmaufras.redux.Effect, R : Reducer<Action, State, Effect>, E : EffectHandler<Action, Effect>>(
+abstract class Store<Action : com.florentmaufras.redux.Action, State : com.florentmaufras.redux.State, Effect : com.florentmaufras.redux.Effect>(
     initialState: State
 ) : ViewModel() {
 
-    abstract val reducer: R
-    abstract val effectHandler: E
+    protected abstract val reducer: Reducer<Action, State, Effect>
+    protected abstract val effectHandler: EffectHandler<Action, Effect>
 
     val currentState: State
         get() = state.value
@@ -20,15 +20,15 @@ abstract class Store<Action : com.florentmaufras.redux.Action, State : com.flore
     private val _state: MutableStateFlow<State> = MutableStateFlow(initialState)
     val state = _state.asStateFlow()
 
-    fun dispatch(action: Action) {
+    // Note: dispatch is open so MockK can mock it in tests.
+    open fun dispatch(action: Action) {
         val result = reducer.reduce(action, currentState)
         _state.update { result.state }
-        result.effect?.let { effect->
-            viewModelScope.launch {
-                effectHandler.handle(effect)?.let { effectAction ->
-                    dispatch(effectAction)
-                }
+        when (val effectResult = result.effect) {
+            is EffectResult.Some -> viewModelScope.launch {
+                effectHandler.handle(effectResult.effect)?.let { dispatch(it) }
             }
+            EffectResult.None -> Unit
         }
     }
 }
