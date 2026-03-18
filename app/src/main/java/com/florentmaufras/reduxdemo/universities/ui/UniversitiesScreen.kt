@@ -1,6 +1,6 @@
 package com.florentmaufras.reduxdemo.universities.ui
 
-import android.content.Intent
+import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,42 +19,41 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.remember
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesAction
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesStore
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesViewModel
 import com.florentmaufras.reduxdemo.universities.data.University
 import com.florentmaufras.reduxdemo.universities.data.ViewState
-import androidx.core.net.toUri
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun UniversitiesScreen(store: UniversitiesStore = viewModel()) {
+fun UniversitiesScreen() {
+    val context = LocalContext.current  // read here, in composable scope
+    val store: UniversitiesStore = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                val app = context.applicationContext as Application
+                @Suppress("UNCHECKED_CAST")
+                return UniversitiesStore(application = app) as T
+            }
+        }
+    )
     val viewModel = remember { UniversitiesViewModel(store) }
     val state = viewModel.stateFlow.collectAsState()
-    val context = LocalContext.current
     val textFieldState = rememberTextFieldState(state.value.countrySearched)
-
-    LaunchedEffect(state.value.website) {
-        val website = state.value.website
-        if (website?.isNotBlank() == true) {
-            viewModel.dispatchAction(UniversitiesAction.WebsiteLoaded)
-            context.startActivity(Intent(Intent.ACTION_VIEW, website.toUri()))
-        }
-    }
 
     Column(
         modifier = Modifier.padding(8.dp)
     ) {
-
         Text(
             text = "Welcome to that small simple demo app!",
             modifier = Modifier.padding(8.dp)
@@ -111,9 +110,7 @@ private fun UniversitiesNoResult(country: String) {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            "No result found for this search: $country"
-        )
+        Text("No result found for this search: $country")
     }
 }
 
@@ -149,7 +146,7 @@ private fun UniversitiesContent(
                     if (university.webPages?.isNotEmpty() == true) {
                         Button(
                             onClick = {
-                                dispatchAction(UniversitiesAction.LoadWebsite(university.webPages[0]))
+                                dispatchAction(UniversitiesAction.OpenWebsite(university.webPages[0]))
                             },
                             modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 16.dp)
                         ) {

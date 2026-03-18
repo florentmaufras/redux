@@ -3,11 +3,13 @@ package com.florentmaufras.reduxdemo.universities.data
 import com.florentmaufras.redux.EffectHandler
 import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import timber.log.Timber
 
 class UniversitiesEffectHandler(
     private val universitiesService: UniversitiesService = UniversitiesService(),
+    private val openUrl: (String) -> Unit = {},
     private val timber: Timber.Tree = Timber,
 ) : EffectHandler<UniversitiesAction, UniversitiesEffect> {
     override fun handle(effect: UniversitiesEffect): Flow<UniversitiesAction> = when (effect) {
@@ -19,6 +21,10 @@ class UniversitiesEffectHandler(
                 timber.e(e)
                 emit(UniversitiesAction.LoadError(e.message))
             }
+        }
+        is UniversitiesEffect.OpenWebsite -> {
+            openUrl(effect.url)
+            emptyFlow()
         }
     }
 }

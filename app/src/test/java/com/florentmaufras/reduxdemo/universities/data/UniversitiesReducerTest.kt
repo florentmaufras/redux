@@ -51,23 +51,13 @@ class UniversitiesReducerTest {
     }
 
     @Test
-    fun reduce_shouldHandleLoadWebsiteAndReturnNewState() {
+    fun reduce_shouldHandleOpenWebsiteAndReturnOpenWebsiteEffect() {
         val state = UniversitiesState()
-        val website = ""
+        val url = "https://example.com"
 
         assertEquals(
-            ReduceResult(state.copy(website = website), EffectResult.None),
-            universitiesReducer.reduce(UniversitiesAction.LoadWebsite(website), state)
-        )
-    }
-
-    @Test
-    fun reduce_shouldHandleWebsiteLoadedAndReturnNewState() {
-        val state = UniversitiesState()
-
-        assertEquals(
-            ReduceResult(state.copy(website = null), EffectResult.None),
-            universitiesReducer.reduce(UniversitiesAction.WebsiteLoaded, state)
+            ReduceResult(state, EffectResult.Some(UniversitiesEffect.OpenWebsite(url))),
+            universitiesReducer.reduce(UniversitiesAction.OpenWebsite(url), state)
         )
     }
 }

@@ -22,13 +22,9 @@ class UniversitiesReducer : Reducer<UniversitiesAction, UniversitiesState, Unive
                 state.copy(viewState = ViewState.Error(action.message)),
                 EffectResult.None
             )
-            is UniversitiesAction.LoadWebsite -> ReduceResult(
-                state.copy(website = action.website),
-                EffectResult.None
-            )
-            is UniversitiesAction.WebsiteLoaded -> ReduceResult(
-                state.copy(website = null),
-                EffectResult.None
+            is UniversitiesAction.OpenWebsite -> ReduceResult(
+                state,
+                EffectResult.Some(UniversitiesEffect.OpenWebsite(action.url))
             )
         }
     }

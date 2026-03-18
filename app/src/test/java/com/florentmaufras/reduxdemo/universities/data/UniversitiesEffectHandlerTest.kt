@@ -22,8 +22,8 @@ class UniversitiesEffectHandlerTest {
     @BeforeEach
     fun setup() {
         universitiesEffectHandler = UniversitiesEffectHandler(
-            mockedUniversitiesService,
-            mockedTimber
+            universitiesService = mockedUniversitiesService,
+            timber = mockedTimber
         )
     }
 
@@ -41,13 +41,29 @@ class UniversitiesEffectHandlerTest {
 
     @Test
     fun handle_shouldEmitLoadError_whenNotSuccessful() = runTest {
-        coEvery { mockedUniversitiesService.getUniversities(country) }.throws(Exception())
+        val exception = Exception("network error")
+        coEvery { mockedUniversitiesService.getUniversities(country) }.throws(exception)
         justRun { mockedTimber.e(any<Exception>()) }
 
         val result = universitiesEffectHandler
             .handle(UniversitiesEffect.LoadUniversities(country))
             .toList()
 
-        assertEquals(listOf(UniversitiesAction.LoadError(null)), result)
+        assertEquals(listOf(UniversitiesAction.LoadError("network error")), result)
+    }
+
+    @Test
+    fun handle_shouldOpenWebsiteAndEmitNothing() = runTest {
+        val url = "https://example.com"
+        val openedUrls = mutableListOf<String>()
+        val handler = UniversitiesEffectHandler(
+            universitiesService = mockedUniversitiesService,
+            openUrl = { openedUrls.add(it) }
+        )
+
+        val result = handler.handle(UniversitiesEffect.OpenWebsite(url)).toList()
+
+        assertEquals(emptyList<UniversitiesAction>(), result)
+        assertEquals(listOf(url), openedUrls)
     }
 }

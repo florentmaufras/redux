@@ -1,6 +1,5 @@
 package com.florentmaufras.reduxdemo.universities.data
 
-import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -28,9 +27,10 @@ class UniversitiesStoreTest {
     fun init_shouldNotThrow_withNoneDefault() {
         assertDoesNotThrow {
             UniversitiesStore(
+                application = null,
                 initialState = UniversitiesState(),
                 reducer = UniversitiesReducer(),
-                effectHandler = UniversitiesEffectHandler(mockk(relaxed = true))
+                effectHandler = UniversitiesEffectHandler()
             )
         }
     }
@@ -38,7 +38,7 @@ class UniversitiesStoreTest {
     @Test
     fun init_shouldNotThrow_withDefault() {
         assertDoesNotThrow {
-            UniversitiesStore(effectHandler = UniversitiesEffectHandler(mockk(relaxed = true)))
+            UniversitiesStore()
         }
     }
 }

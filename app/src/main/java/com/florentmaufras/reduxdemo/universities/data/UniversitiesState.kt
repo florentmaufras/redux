@@ -5,5 +5,4 @@ import com.florentmaufras.redux.State
 data class UniversitiesState(
     val viewState: ViewState = ViewState.Idle,
     val countrySearched: String = "Canada",
-    val website: String? = null,
 ) : State
