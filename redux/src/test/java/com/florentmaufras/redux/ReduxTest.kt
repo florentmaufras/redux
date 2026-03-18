@@ -65,6 +65,16 @@ class ReduxTest {
     }
 
     @Test
+    fun dispatchingActionWithSameCancelId_shouldCancelPreviousEffect() = runTest {
+        coEvery { mockedRepository.toString() }.returns("")
+
+        storeTest.dispatch(ActionTest.Save("first"), cancelId = "search")
+        storeTest.dispatch(ActionTest.Save("second"), cancelId = "search")
+
+        assertEquals(storeTest.currentState, StateTest("second"))
+    }
+
+    @Test
     fun dispatchingActionWithEffectWithAction_shouldEndUpInStateWithNameUpdated_withValuePassedInActionForEffect() = runTest {
         val name = "opewjrsijhewrsdcads"
         coEvery { mockedRepository.toString() }.returns("")
