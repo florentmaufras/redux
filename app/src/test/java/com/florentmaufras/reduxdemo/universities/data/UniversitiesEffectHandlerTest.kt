@@ -29,7 +29,7 @@ class UniversitiesEffectHandlerTest {
 
     @Test
     fun handle_shouldEmitUniversitiesLoaded_whenSuccessful() = runTest {
-        val universities = arrayListOf<University>()
+        val universities = emptyList<University>()
         coEvery { mockedUniversitiesService.getUniversities(country) }.returns(universities)
 
         val result = universitiesEffectHandler

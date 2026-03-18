@@ -120,7 +120,7 @@ private fun UniversitiesNoResult(country: String) {
 
 @Composable
 private fun UniversitiesContent(
-    universities: ArrayList<University>,
+    universities: List<University>,
     dispatchAction: (UniversitiesAction) -> Unit,
 ) {
     LazyVerticalGrid(

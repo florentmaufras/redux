@@ -32,7 +32,7 @@ class UniversitiesReducerTest {
     @Test
     fun reduce_shouldHandleUniversitiesLoadedAndReturnAndNewState() {
         val state = UniversitiesState()
-        val universities = arrayListOf<University>()
+        val universities = emptyList<University>()
 
         assertEquals(
             ReduceResult(state.copy(isLoading = false, universities = universities), EffectResult.None),

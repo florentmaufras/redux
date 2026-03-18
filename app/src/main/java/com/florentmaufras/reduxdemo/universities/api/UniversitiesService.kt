@@ -18,6 +18,6 @@ class UniversitiesService(
 
     private val universitiesAPI by lazy { retrofit.create(UniversitiesAPI::class.java) }
 
-    suspend fun getUniversities(country: String): ArrayList<University> =
+    suspend fun getUniversities(country: String): List<University> =
         universitiesAPI.getUniversities(country)
 }

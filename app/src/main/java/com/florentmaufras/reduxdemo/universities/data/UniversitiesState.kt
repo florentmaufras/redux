@@ -7,5 +7,5 @@ data class UniversitiesState(
     val hasError: Boolean = false,
     val website: String? = null,
     val countrySearched: String = "Canada",
-    val universities: ArrayList<University> = arrayListOf(),
-): State
+    val universities: List<University> = emptyList(),
+) : State

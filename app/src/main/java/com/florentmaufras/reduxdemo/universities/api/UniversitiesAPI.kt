@@ -12,5 +12,5 @@ interface UniversitiesAPI {
     @GET("search")
     suspend fun getUniversities(
         @Query("country") country: String
-    ): ArrayList<University>
+    ): List<University>
 }
