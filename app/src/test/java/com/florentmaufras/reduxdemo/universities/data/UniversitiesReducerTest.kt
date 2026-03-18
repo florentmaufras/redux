@@ -22,7 +22,7 @@ class UniversitiesReducerTest {
 
         assertEquals(
             ReduceResult(
-                state.copy(isLoading = true, countrySearched = country, hasError = false),
+                state.copy(viewState = ViewState.Loading, countrySearched = country),
                 EffectResult.Some(UniversitiesEffect.LoadUniversities(country))
             ),
             universitiesReducer.reduce(UniversitiesAction.LoadUniversities(country), state)
@@ -30,28 +30,28 @@ class UniversitiesReducerTest {
     }
 
     @Test
-    fun reduce_shouldHandleUniversitiesLoadedAndReturnAndNewState() {
+    fun reduce_shouldHandleUniversitiesLoadedAndReturnNewState() {
         val state = UniversitiesState()
         val universities = emptyList<University>()
 
         assertEquals(
-            ReduceResult(state.copy(isLoading = false, universities = universities), EffectResult.None),
+            ReduceResult(state.copy(viewState = ViewState.Loaded(universities)), EffectResult.None),
             universitiesReducer.reduce(UniversitiesAction.UniversitiesLoaded(universities), state)
         )
     }
 
     @Test
-    fun reduce_shouldHandleUniversitiesLoadErrorAndReturnAndNewState() {
+    fun reduce_shouldHandleLoadErrorAndReturnNewState() {
         val state = UniversitiesState()
 
         assertEquals(
-            ReduceResult(state.copy(isLoading = false, hasError = true), EffectResult.None),
-            universitiesReducer.reduce(UniversitiesAction.LoadError(), state)
+            ReduceResult(state.copy(viewState = ViewState.Error(null)), EffectResult.None),
+            universitiesReducer.reduce(UniversitiesAction.LoadError(null), state)
         )
     }
 
     @Test
-    fun reduce_shouldHandleUniversitiesLoadWebsiteAndReturnAndNewState() {
+    fun reduce_shouldHandleLoadWebsiteAndReturnNewState() {
         val state = UniversitiesState()
         val website = ""
 
@@ -62,7 +62,7 @@ class UniversitiesReducerTest {
     }
 
     @Test
-    fun reduce_shouldHandleUniversitiesWebsiteLoadedAndReturnAndNewState() {
+    fun reduce_shouldHandleWebsiteLoadedAndReturnNewState() {
         val state = UniversitiesState()
 
         assertEquals(

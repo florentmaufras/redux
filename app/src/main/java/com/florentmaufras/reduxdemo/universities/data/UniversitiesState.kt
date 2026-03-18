@@ -3,9 +3,7 @@ package com.florentmaufras.reduxdemo.universities.data
 import com.florentmaufras.redux.State
 
 data class UniversitiesState(
-    val isLoading: Boolean = false,
-    val hasError: Boolean = false,
-    val website: String? = null,
+    val viewState: ViewState = ViewState.Idle,
     val countrySearched: String = "Canada",
-    val universities: List<University> = emptyList(),
+    val website: String? = null,
 ) : State

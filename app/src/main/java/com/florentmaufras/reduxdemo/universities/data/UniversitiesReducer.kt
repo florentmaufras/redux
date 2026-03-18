@@ -11,15 +11,15 @@ class UniversitiesReducer : Reducer<UniversitiesAction, UniversitiesState, Unive
     ): ReduceResult<UniversitiesState, UniversitiesEffect> {
         return when (action) {
             is UniversitiesAction.LoadUniversities -> ReduceResult(
-                state.copy(isLoading = true, countrySearched = action.country, hasError = false),
+                state.copy(viewState = ViewState.Loading, countrySearched = action.country),
                 EffectResult.Some(UniversitiesEffect.LoadUniversities(action.country))
             )
             is UniversitiesAction.UniversitiesLoaded -> ReduceResult(
-                state.copy(isLoading = false, universities = action.universities),
+                state.copy(viewState = ViewState.Loaded(action.universities)),
                 EffectResult.None
             )
             is UniversitiesAction.LoadError -> ReduceResult(
-                state.copy(isLoading = false, hasError = true),
+                state.copy(viewState = ViewState.Error(action.message)),
                 EffectResult.None
             )
             is UniversitiesAction.LoadWebsite -> ReduceResult(

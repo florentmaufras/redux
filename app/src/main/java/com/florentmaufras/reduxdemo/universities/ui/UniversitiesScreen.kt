@@ -32,6 +32,7 @@ import com.florentmaufras.reduxdemo.universities.data.UniversitiesAction
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesStore
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesViewModel
 import com.florentmaufras.reduxdemo.universities.data.University
+import com.florentmaufras.reduxdemo.universities.data.ViewState
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -72,14 +73,14 @@ fun UniversitiesScreen(store: UniversitiesStore = viewModel()) {
             modifier = Modifier.padding(8.dp),
         )
 
-        when {
-            state.value.isLoading -> UniversitiesLoading()
-            state.value.hasError -> UniversitiesError()
-            state.value.universities.isEmpty() -> UniversitiesNoResult(state.value.countrySearched)
-            else -> UniversitiesContent(
-                state.value.universities,
-                viewModel::dispatchAction
-            )
+        when (val vs = state.value.viewState) {
+            ViewState.Idle -> UniversitiesNoResult(state.value.countrySearched)
+            ViewState.Loading -> UniversitiesLoading()
+            is ViewState.Error -> UniversitiesError(vs.message)
+            is ViewState.Loaded -> {
+                if (vs.universities.isEmpty()) UniversitiesNoResult(state.value.countrySearched)
+                else UniversitiesContent(vs.universities, viewModel::dispatchAction)
+            }
         }
     }
 }
@@ -95,14 +96,12 @@ private fun UniversitiesLoading() {
 }
 
 @Composable
-private fun UniversitiesError() {
+private fun UniversitiesError(message: String?) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            "Oupsy daisy! Something went wrong!"
-        )
+        Text(if (message != null) "Error: $message" else "Oupsy daisy! Something went wrong!")
     }
 }
 
