@@ -1,5 +1,7 @@
 package com.florentmaufras.redux
 
-interface EffectHandler<Action: com.florentmaufras.redux.Action, Effect: com.florentmaufras.redux.Effect> {
-    suspend fun handle(effect: Effect) : Action?
+import kotlinx.coroutines.flow.Flow
+
+interface EffectHandler<Action : com.florentmaufras.redux.Action, Effect : com.florentmaufras.redux.Effect> {
+    fun handle(effect: Effect): Flow<Action>
 }

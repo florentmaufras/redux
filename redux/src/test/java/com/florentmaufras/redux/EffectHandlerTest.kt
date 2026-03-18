@@ -1,28 +1,21 @@
 package com.florentmaufras.redux
 
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 
 class EffectHandlerTest(
     val repository: Any,
     val dispatcherIO: CoroutineDispatcher,
-): EffectHandler<ActionTest, EffectTest> {
-    override suspend fun handle(effect: EffectTest): ActionTest? {
-        return when(effect) {
-            is EffectTest.SaveAPICall -> saveAPICall()
-            is EffectTest.EffectWithAction -> effectWithAction(effect.name)
+) : EffectHandler<ActionTest, EffectTest> {
+    override fun handle(effect: EffectTest): Flow<ActionTest> = when (effect) {
+        is EffectTest.SaveAPICall -> flow {
+            withContext(dispatcherIO) { repository.toString() }
+            // no emission — side effect only
         }
-    }
-
-    private suspend fun saveAPICall(): ActionTest? {
-        withContext(dispatcherIO) {
-            repository.toString() // Could/should call your repo
-        }
-        return null
-    }
-
-    private fun effectWithAction(name: String): ActionTest {
-        // Do something... then save
-        return ActionTest.Save(name)
+        is EffectTest.EffectWithAction -> flowOf(ActionTest.Save(effect.name))
     }
 }

@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 
 abstract class Store<Action : com.florentmaufras.redux.Action, State : com.florentmaufras.redux.State, Effect : com.florentmaufras.redux.Effect>(
     initialState: State
@@ -26,7 +27,9 @@ abstract class Store<Action : com.florentmaufras.redux.Action, State : com.flore
         _state.update { result.state }
         when (val effectResult = result.effect) {
             is EffectResult.Some -> viewModelScope.launch {
-                effectHandler.handle(effectResult.effect)?.let { dispatch(it) }
+                effectHandler.handle(effectResult.effect).collect { action ->
+                    dispatch(action)
+                }
             }
             EffectResult.None -> Unit
         }
