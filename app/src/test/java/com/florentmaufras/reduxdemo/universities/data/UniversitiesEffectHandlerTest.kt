@@ -48,6 +48,6 @@ class UniversitiesEffectHandlerTest {
             .handle(UniversitiesEffect.LoadUniversities(country))
             .toList()
 
-        assertEquals(listOf(UniversitiesAction.LoadError), result)
+        assertEquals(listOf(UniversitiesAction.LoadError(null)), result)
     }
 }

@@ -46,7 +46,7 @@ class UniversitiesReducerTest {
 
         assertEquals(
             ReduceResult(state.copy(isLoading = false, hasError = true), EffectResult.None),
-            universitiesReducer.reduce(UniversitiesAction.LoadError, state)
+            universitiesReducer.reduce(UniversitiesAction.LoadError(), state)
         )
     }
 

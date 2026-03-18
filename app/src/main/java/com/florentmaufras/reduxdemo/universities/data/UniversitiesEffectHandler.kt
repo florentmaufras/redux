@@ -17,7 +17,7 @@ class UniversitiesEffectHandler(
                 emit(UniversitiesAction.UniversitiesLoaded(list))
             } catch (e: Exception) {
                 timber.e(e)
-                emit(UniversitiesAction.LoadError)
+                emit(UniversitiesAction.LoadError(e.message))
             }
         }
     }
