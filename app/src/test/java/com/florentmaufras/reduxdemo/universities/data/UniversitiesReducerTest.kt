@@ -1,5 +1,6 @@
 package com.florentmaufras.reduxdemo.universities.data
 
+import com.florentmaufras.redux.EffectResult
 import com.florentmaufras.redux.ReduceResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -21,12 +22,10 @@ class UniversitiesReducerTest {
 
         assertEquals(
             ReduceResult(
-                state.copy(
-                    isLoading = true,
-                    countrySearched = country,
-                    hasError = false
-                ), UniversitiesEffect.LoadUniversities(country)
-            ), universitiesReducer.reduce(UniversitiesAction.LoadUniversities(country), state)
+                state.copy(isLoading = true, countrySearched = country, hasError = false),
+                EffectResult.Some(UniversitiesEffect.LoadUniversities(country))
+            ),
+            universitiesReducer.reduce(UniversitiesAction.LoadUniversities(country), state)
         )
     }
 
@@ -36,11 +35,7 @@ class UniversitiesReducerTest {
         val universities = arrayListOf<University>()
 
         assertEquals(
-            ReduceResult(
-                state.copy(
-                    isLoading = false, universities = universities
-                ), null
-            ),
+            ReduceResult(state.copy(isLoading = false, universities = universities), EffectResult.None),
             universitiesReducer.reduce(UniversitiesAction.UniversitiesLoaded(universities), state)
         )
     }
@@ -50,11 +45,7 @@ class UniversitiesReducerTest {
         val state = UniversitiesState()
 
         assertEquals(
-            ReduceResult(
-                state.copy(
-                    isLoading = false, hasError = true
-                ), null
-            ),
+            ReduceResult(state.copy(isLoading = false, hasError = true), EffectResult.None),
             universitiesReducer.reduce(UniversitiesAction.LoadError, state)
         )
     }
@@ -65,11 +56,7 @@ class UniversitiesReducerTest {
         val website = ""
 
         assertEquals(
-            ReduceResult(
-                state.copy(
-                    website = website
-                ), null
-            ),
+            ReduceResult(state.copy(website = website), EffectResult.None),
             universitiesReducer.reduce(UniversitiesAction.LoadWebsite(website), state)
         )
     }
@@ -79,11 +66,7 @@ class UniversitiesReducerTest {
         val state = UniversitiesState()
 
         assertEquals(
-            ReduceResult(
-                state.copy(
-                    website = null
-                ), null
-            ),
+            ReduceResult(state.copy(website = null), EffectResult.None),
             universitiesReducer.reduce(UniversitiesAction.WebsiteLoaded, state)
         )
     }

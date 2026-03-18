@@ -27,14 +27,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.remember
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesAction
+import com.florentmaufras.reduxdemo.universities.data.UniversitiesStore
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesViewModel
 import com.florentmaufras.reduxdemo.universities.data.University
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun UniversitiesScreen(viewModel: UniversitiesViewModel = viewModel()) {
+fun UniversitiesScreen(store: UniversitiesStore = viewModel()) {
+    val viewModel = remember { UniversitiesViewModel(store) }
     val state = viewModel.stateFlow.collectAsState()
     val context = LocalContext.current
     val textFieldState = rememberTextFieldState(state.value.countrySearched)

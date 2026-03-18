@@ -4,6 +4,7 @@ import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
 import io.mockk.coEvery
 import io.mockk.justRun
 import io.mockk.mockk
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -14,10 +15,9 @@ class UniversitiesEffectHandlerTest {
 
     private val mockedUniversitiesService: UniversitiesService = mockk()
     private val mockedTimber: Timber.Tree = mockk()
+    private val country = "country"
 
     private lateinit var universitiesEffectHandler: UniversitiesEffectHandler
-
-    private val country = "country"
 
     @BeforeEach
     fun setup() {
@@ -28,25 +28,26 @@ class UniversitiesEffectHandlerTest {
     }
 
     @Test
-    fun handle_shouldReturnUniversitiesLoaded_whenSuccessful() = runTest {
+    fun handle_shouldEmitUniversitiesLoaded_whenSuccessful() = runTest {
         val universities = arrayListOf<University>()
+        coEvery { mockedUniversitiesService.getUniversities(country) }.returns(universities)
 
-        coEvery { mockedUniversitiesService.getUniversities(country) }.coAnswers { universities }
+        val result = universitiesEffectHandler
+            .handle(UniversitiesEffect.LoadUniversities(country))
+            .toList()
 
-        assertEquals(
-            UniversitiesAction.UniversitiesLoaded(universities),
-            universitiesEffectHandler.handle(UniversitiesEffect.LoadUniversities(country))
-        )
+        assertEquals(listOf(UniversitiesAction.UniversitiesLoaded(universities)), result)
     }
 
     @Test
-    fun handle_shouldReturnLoadError_whenNotSuccessful() = runTest {
+    fun handle_shouldEmitLoadError_whenNotSuccessful() = runTest {
         coEvery { mockedUniversitiesService.getUniversities(country) }.throws(Exception())
         justRun { mockedTimber.e(any<Exception>()) }
 
-        assertEquals(
-            UniversitiesAction.LoadError,
-            universitiesEffectHandler.handle(UniversitiesEffect.LoadUniversities(country))
-        )
+        val result = universitiesEffectHandler
+            .handle(UniversitiesEffect.LoadUniversities(country))
+            .toList()
+
+        assertEquals(listOf(UniversitiesAction.LoadError), result)
     }
 }
