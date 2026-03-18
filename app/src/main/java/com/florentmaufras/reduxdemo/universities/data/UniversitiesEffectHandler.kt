@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.flow
 import timber.log.Timber
 
 class UniversitiesEffectHandler(
-    private val universitiesService: UniversitiesService = UniversitiesService(),
+    private val universitiesService: UniversitiesService,
     private val openUrl: (String) -> Unit = {},
     private val timber: Timber.Tree = Timber,
 ) : EffectHandler<UniversitiesAction, UniversitiesEffect> {

@@ -1,5 +1,7 @@
 package com.florentmaufras.reduxdemo.universities.data
 
+import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -13,6 +15,8 @@ import org.junit.jupiter.api.assertDoesNotThrow
 @OptIn(ExperimentalCoroutinesApi::class)
 class UniversitiesStoreTest {
 
+    private val mockedService: UniversitiesService = mockk(relaxed = true)
+
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -24,21 +28,14 @@ class UniversitiesStoreTest {
     }
 
     @Test
-    fun init_shouldNotThrow_withNoneDefault() {
+    fun init_shouldNotThrow_withExplicitDependencies() {
         assertDoesNotThrow {
             UniversitiesStore(
                 application = null,
                 initialState = UniversitiesState(),
                 reducer = UniversitiesReducer(),
-                effectHandler = UniversitiesEffectHandler()
+                effectHandler = UniversitiesEffectHandler(mockedService)
             )
-        }
-    }
-
-    @Test
-    fun init_shouldNotThrow_withDefault() {
-        assertDoesNotThrow {
-            UniversitiesStore()
         }
     }
 }
