@@ -1,6 +1,6 @@
 package com.florentmaufras.redux
 
-sealed class EffectResult<out Effect : com.florentmaufras.redux.Effect> {
+sealed class EffectResult<out Effect : Any> {
     data object None : EffectResult<Nothing>()
-    data class Some<Effect : com.florentmaufras.redux.Effect>(val effect: Effect) : EffectResult<Effect>()
+    data class Some<Effect : Any>(val effect: Effect) : EffectResult<Effect>()
 }

@@ -1,6 +1,6 @@
 package com.florentmaufras.redux
 
-data class ReduceResult<State : com.florentmaufras.redux.State, Effect : com.florentmaufras.redux.Effect>(
+data class ReduceResult<State : Any, Effect : Any>(
     val state: State,
     val effect: EffectResult<Effect>
 )

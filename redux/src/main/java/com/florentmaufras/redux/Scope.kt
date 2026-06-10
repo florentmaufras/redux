@@ -14,12 +14,12 @@ package com.florentmaufras.redux
  *   )
  */
 class Scope<
-    ParentAction : Action,
+    ParentAction : Any,
     ParentState : State,
-    ParentEffect : Effect,
-    ChildAction : Action,
+    ParentEffect : Any,
+    ChildAction : Any,
     ChildState : State,
-    ChildEffect : Effect>(
+    ChildEffect : Any>(
     private val toChildState: (ParentState) -> ChildState,
     private val fromChildState: (ParentState, ChildState) -> ParentState,
     private val toChildAction: (ParentAction) -> ChildAction?,

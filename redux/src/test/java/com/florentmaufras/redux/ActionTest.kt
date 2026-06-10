@@ -1,6 +1,6 @@
 package com.florentmaufras.redux
 
-sealed class ActionTest: Action {
+sealed class ActionTest {
     data class Save(val saveName: String): ActionTest()
     data object Rollback: ActionTest()
 

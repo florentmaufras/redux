@@ -1,8 +1,6 @@
 package com.florentmaufras.reduxdemo.universities.data
 
-import com.florentmaufras.redux.Effect
-
-sealed class UniversitiesEffect : Effect {
+sealed class UniversitiesEffect {
     data class LoadUniversities(val country: String) : UniversitiesEffect()
     data class OpenWebsite(val url: String) : UniversitiesEffect()
 }
