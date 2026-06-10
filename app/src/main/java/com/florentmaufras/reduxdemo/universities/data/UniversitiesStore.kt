@@ -3,6 +3,8 @@ package com.florentmaufras.reduxdemo.universities.data
 import android.app.Application
 import android.content.Intent
 import androidx.core.net.toUri
+import com.florentmaufras.redux.OwnedStateOwner
+import com.florentmaufras.redux.StateOwner
 import com.florentmaufras.redux.Store
 import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
 import retrofit2.Retrofit
@@ -15,9 +17,9 @@ private fun defaultRetrofit(): Retrofit = Retrofit.Builder()
 
 class UniversitiesStore(
     application: Application? = null,
-    initialState: UniversitiesState = UniversitiesState(),
+    stateOwner: StateOwner<UniversitiesState> = OwnedStateOwner(UniversitiesState()),
     override val reducer: UniversitiesReducer = UniversitiesReducer(),
-    override val effectHandler: UniversitiesEffectHandler = UniversitiesEffectHandler(
+    private val effectHandler: UniversitiesEffectHandler = UniversitiesEffectHandler(
         universitiesService = UniversitiesService(defaultRetrofit()),
         openUrl = { url ->
             application?.startActivity(
@@ -26,7 +28,11 @@ class UniversitiesStore(
             )
         }
     )
-) : Store<UniversitiesAction, UniversitiesState, UniversitiesEffect>(initialState) {
+) : Store<UniversitiesAction, UniversitiesState, UniversitiesEffect>(stateOwner) {
+
+    override fun handleEffect(effect: UniversitiesEffect, cancelId: String?) {
+        launchEffect(effect, cancelId) { effectHandler.handle(it) }
+    }
 
     init {
         if (state.value.countrySearched.isNotBlank()) {

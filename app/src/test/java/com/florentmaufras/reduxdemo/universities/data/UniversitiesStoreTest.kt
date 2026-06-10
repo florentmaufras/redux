@@ -1,5 +1,6 @@
 package com.florentmaufras.reduxdemo.universities.data
 
+import com.florentmaufras.redux.OwnedStateOwner
 import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,7 @@ class UniversitiesStoreTest {
         assertDoesNotThrow {
             UniversitiesStore(
                 application = null,
-                initialState = UniversitiesState(),
+                stateOwner = OwnedStateOwner(UniversitiesState()),
                 reducer = UniversitiesReducer(),
                 effectHandler = UniversitiesEffectHandler(mockedService)
             )
