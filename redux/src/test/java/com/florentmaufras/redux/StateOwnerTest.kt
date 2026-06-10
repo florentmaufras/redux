@@ -5,25 +5,62 @@ import org.junit.Test
 
 class StateOwnerTest {
 
-    data class TestState(val value: Int = 0) : State
+    data class ParentState(val child: ChildState = ChildState()) : State
+    data class ChildState(val value: Int = 0) : State
 
     @Test
     fun ownedStateOwner_initialState_isReturned() {
-        val owner = OwnedStateOwner(TestState(42))
-        assertEquals(TestState(42), owner.currentState)
+        val owner = OwnedStateOwner(ChildState(42))
+        assertEquals(ChildState(42), owner.currentState)
     }
 
     @Test
     fun ownedStateOwner_updateState_appliesTransform() {
-        val owner = OwnedStateOwner(TestState(0))
+        val owner = OwnedStateOwner(ChildState(0))
         owner.updateState { it.copy(value = it.value + 5) }
-        assertEquals(TestState(5), owner.currentState)
+        assertEquals(ChildState(5), owner.currentState)
     }
 
     @Test
     fun ownedStateOwner_stateFlow_reflectsUpdate() {
-        val owner = OwnedStateOwner(TestState(1))
+        val owner = OwnedStateOwner(ChildState(1))
         owner.updateState { it.copy(value = 99) }
-        assertEquals(TestState(99), owner.state.value)
+        assertEquals(ChildState(99), owner.state.value)
+    }
+
+    @Test
+    fun scopedStateOwner_currentState_readsChildFromParent() {
+        val parent = OwnedStateOwner(ParentState(child = ChildState(7)))
+        val scoped = ScopedStateOwner(
+            parent = parent,
+            toChildState = { it.child },
+            fromChildState = { p, c -> p.copy(child = c) }
+        )
+        assertEquals(ChildState(7), scoped.currentState)
+    }
+
+    @Test
+    fun scopedStateOwner_updateState_writesBackToParent() {
+        val parent = OwnedStateOwner(ParentState(child = ChildState(0)))
+        val scoped = ScopedStateOwner(
+            parent = parent,
+            toChildState = { it.child },
+            fromChildState = { p, c -> p.copy(child = c) }
+        )
+        scoped.updateState { it.copy(value = 10) }
+        assertEquals(ChildState(10), scoped.currentState)
+        assertEquals(ParentState(child = ChildState(10)), parent.currentState)
+    }
+
+    @Test
+    fun scopedStateOwner_stateFlowValue_reflectsCurrentChild() {
+        val parent = OwnedStateOwner(ParentState(child = ChildState(3)))
+        val scoped = ScopedStateOwner(
+            parent = parent,
+            toChildState = { it.child },
+            fromChildState = { p, c -> p.copy(child = c) }
+        )
+        scoped.updateState { it.copy(value = 20) }
+        assertEquals(ChildState(20), scoped.state.value)
     }
 }
