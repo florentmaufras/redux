@@ -45,6 +45,12 @@ abstract class Store<Action : Any, State : Any, Effect : Any>(
         val job = viewModelScope.launch {
             block(effect).collect { dispatch(it) }
         }
-        cancelId?.let { effectJobs[it] = job }
+        cancelId?.let { id ->
+            effectJobs[id] = job
+            // Drop the entry once the job finishes so completed jobs don't
+            // accumulate. Only remove if still mapped to this job, in case a
+            // newer effect already replaced it under the same cancelId.
+            job.invokeOnCompletion { effectJobs.remove(id, job) }
+        }
     }
 }
