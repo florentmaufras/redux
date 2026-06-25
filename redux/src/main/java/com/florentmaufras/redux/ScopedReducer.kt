@@ -28,7 +28,7 @@ class ScopedReducer<
         state: ParentState
     ): ReduceResult<ParentState, ParentAction> {
         val childAction = scope.toChildAction(action)
-            ?: return ReduceResult(state, EffectResult.None)
+            ?: return ReduceResult(state)
 
         val childResult = childReducer.reduce(childAction, scope.toChildState(state))
         val newState = scope.fromChildState(state, childResult.state)
