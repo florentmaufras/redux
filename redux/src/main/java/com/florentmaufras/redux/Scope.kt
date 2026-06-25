@@ -16,9 +16,9 @@ package com.florentmaufras.redux
  */
 interface Scope<
     ParentAction : Any,
-    ParentState : State,
+    ParentState : Any,
     ChildAction : Any,
-    ChildState : State> {
+    ChildState : Any> {
 
     val toChildState: (ParentState) -> ChildState
     val fromChildState: (ParentState, ChildState) -> ParentState

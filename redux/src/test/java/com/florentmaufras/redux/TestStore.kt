@@ -7,7 +7,7 @@ package com.florentmaufras.redux
  * Effects produced by the reducer are recorded in [dispatchedEffects] but not executed —
  * this keeps the test scope focused on the reducer's pure logic.
  */
-class TestStore<A : Any, S : State, E : Any>(
+class TestStore<A : Any, S : Any, E : Any>(
     initialState: S,
     private val reducer: Reducer<A, S, E>
 ) {

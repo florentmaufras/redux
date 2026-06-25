@@ -7,8 +7,8 @@ import org.junit.Test
 
 class StateOwnerTest {
 
-    data class ParentState(val child: ChildState = ChildState()) : State
-    data class ChildState(val value: Int = 0) : State
+    data class ParentState(val child: ChildState = ChildState())
+    data class ChildState(val value: Int = 0)
 
     @Test
     fun ownedStateOwner_initialState_isReturned() {

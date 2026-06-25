@@ -16,9 +16,9 @@ package com.florentmaufras.redux
  */
 class ScopedReducer<
     ParentAction : Any,
-    ParentState : State,
+    ParentState : Any,
     ChildAction : Any,
-    ChildState : State>(
+    ChildState : Any>(
     private val scope: Scope<ParentAction, ParentState, ChildAction, ChildState>,
     private val childReducer: Reducer<ChildAction, ChildState, Nothing>
 ) : Reducer<ParentAction, ParentState, ParentAction> {

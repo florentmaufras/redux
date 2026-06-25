@@ -5,8 +5,8 @@ import org.junit.Test
 
 class ScopedReducerTest {
 
-    data class ParentState(val child: ChildState = ChildState()) : State
-    data class ChildState(val count: Int = 0) : State
+    data class ParentState(val child: ChildState = ChildState())
+    data class ChildState(val count: Int = 0)
 
     sealed class ParentAction {
         data class IncrementChild(val by: Int) : ParentAction()
