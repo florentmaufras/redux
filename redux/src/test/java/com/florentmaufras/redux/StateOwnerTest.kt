@@ -1,6 +1,8 @@
 package com.florentmaufras.redux
 
 import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class StateOwnerTest {
@@ -22,10 +24,10 @@ class StateOwnerTest {
     }
 
     @Test
-    fun ownedStateOwner_stateFlow_reflectsUpdate() {
+    fun ownedStateOwner_state_emitsLatestValue() = runTest {
         val owner = OwnedStateOwner(ChildState(1))
         owner.updateState { it.copy(value = 99) }
-        assertEquals(ChildState(99), owner.state.value)
+        assertEquals(ChildState(99), owner.state.first())
     }
 
     @Test
@@ -53,7 +55,7 @@ class StateOwnerTest {
     }
 
     @Test
-    fun scopedStateOwner_stateFlowValue_reflectsCurrentChild() {
+    fun scopedStateOwner_state_emitsCurrentChild() = runTest {
         val parent = OwnedStateOwner(ParentState(child = ChildState(3)))
         val scoped = ScopedStateOwner(
             parent = parent,
@@ -61,6 +63,6 @@ class StateOwnerTest {
             fromChildState = { p, c -> p.copy(child = c) }
         )
         scoped.updateState { it.copy(value = 20) }
-        assertEquals(ChildState(20), scoped.state.value)
+        assertEquals(ChildState(20), scoped.state.first())
     }
 }

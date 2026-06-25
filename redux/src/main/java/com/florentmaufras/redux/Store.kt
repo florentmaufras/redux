@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 abstract class Store<Action : Any, State : Any, Effect : Any>(
@@ -14,7 +16,11 @@ abstract class Store<Action : Any, State : Any, Effect : Any>(
     protected abstract val reducer: Reducer<Action, State, Effect>
 
     val currentState: State get() = stateOwner.currentState
-    val state: StateFlow<State> get() = stateOwner.state
+    val state: StateFlow<State> = stateOwner.state.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = stateOwner.currentState
+    )
 
     private val effectJobs = mutableMapOf<String, Job>()
 

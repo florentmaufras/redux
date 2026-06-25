@@ -29,13 +29,13 @@ class ReduxTest {
 
     @Before
     fun setup() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+
         storeTest = StoreTest(
             initialName,
             reducerTest,
             effectHandlerTest
         )
-
-        Dispatchers.setMain(UnconfinedTestDispatcher())
     }
 
     @After
