@@ -1,13 +1,17 @@
 package com.florentmaufras.redux
 
 import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class StateOwnerTest {
 
-    data class ParentState(val child: ChildState = ChildState())
+    data class ParentState(val child: ChildState = ChildState(), val unrelated: Int = 0)
     data class ChildState(val value: Int = 0)
 
     @Test
@@ -64,5 +68,27 @@ class StateOwnerTest {
         )
         scoped.updateState { it.copy(value = 20) }
         assertEquals(ChildState(20), scoped.state.first())
+    }
+
+    @Test
+    fun scopedStateOwner_state_deduplicatesUnchangedChild() = runTest {
+        val parent = OwnedStateOwner(ParentState(child = ChildState(0)))
+        val scoped = ScopedStateOwner(
+            parent = parent,
+            toChildState = { it.child },
+            fromChildState = { p, c -> p.copy(child = c) }
+        )
+        val emissions = mutableListOf<ChildState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            scoped.state.collect { emissions.add(it) }
+        }
+
+        parent.updateState { it.copy(unrelated = it.unrelated + 1) } // child unchanged
+        parent.updateState { it.copy(child = ChildState(5)) }        // child changed
+        parent.updateState { it.copy(unrelated = it.unrelated + 1) } // child unchanged
+
+        // Only the two distinct child values are emitted; sibling-field changes
+        // that leave the child slice equal are suppressed by distinctUntilChanged.
+        assertEquals(listOf(ChildState(0), ChildState(5)), emissions)
     }
 }

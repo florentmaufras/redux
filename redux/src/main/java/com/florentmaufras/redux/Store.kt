@@ -24,6 +24,10 @@ abstract class Store<Action : Any, State : Any, Effect : Any>(
 
     private val effectJobs = mutableMapOf<String, Job>()
 
+    // Visible for tests (module-internal, not part of the public API): number of
+    // in-flight effect jobs currently tracked by cancelId.
+    internal val trackedEffectJobCount: Int get() = effectJobs.size
+
     // Note: dispatch is open so MockK can mock it in tests.
     open fun dispatch(action: Action, cancelId: String? = null) {
         val result = reducer.reduce(action, currentState)

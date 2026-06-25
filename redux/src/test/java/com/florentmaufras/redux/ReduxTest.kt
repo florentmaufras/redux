@@ -7,6 +7,7 @@ import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -82,5 +83,28 @@ class ReduxTest {
         storeTest.dispatch(ActionTest.ActionWithEffectWithAction(name))
 
         assertEquals(storeTest.currentState, StateTest(name))
+    }
+
+    @Test
+    fun stateFlow_reflectsDispatchedState() = runTest {
+        coEvery { mockedRepository.toString() }.returns("")
+
+        assertEquals(StateTest(initialName), storeTest.state.value)
+
+        storeTest.dispatch(ActionTest.Save("updated"))
+        advanceUntilIdle()
+
+        assertEquals(StateTest("updated"), storeTest.state.value)
+    }
+
+    @Test
+    fun completedEffectJob_isRemovedFromTracking() = runTest {
+        coEvery { mockedRepository.toString() }.returns("")
+
+        storeTest.dispatch(ActionTest.Save("x"), cancelId = "save")
+        advanceUntilIdle()
+
+        // The SaveAPICall effect completes, so its tracked job must be dropped.
+        assertEquals(0, storeTest.trackedEffectJobCount)
     }
 }
