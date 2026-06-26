@@ -2,6 +2,7 @@ package com.florentmaufras.redux
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,16 +33,25 @@ abstract class Store<State, Action>(initialState: State) : ViewModel() {
     }
 
     private fun runEffect(effect: Effect<Action>) {
-        val id = effect.cancelId
-        if (effect.isCancellation) {
-            if (id != null) effectJobs.remove(id)?.cancel()
-            return
-        }
-        if (id != null && effect.cancelInFlight) effectJobs[id]?.cancel()
-        val job = viewModelScope.launch { effect.actions.collect { send(it) } }
-        if (id != null) {
-            effectJobs[id] = job
-            job.invokeOnCompletion { effectJobs.remove(id, job) }
+        runEffectIn(viewModelScope, effect)
+    }
+
+    private fun runEffectIn(scope: CoroutineScope, effect: Effect<Action>) {
+        when (effect) {
+            Effect.None -> Unit
+            is Effect.Cancel -> effectJobs.remove(effect.id)?.cancel()
+            is Effect.Actions -> {
+                scope.launch { effect.flow.collect { send(it) } }
+            }
+            is Effect.Merge -> effect.effects.forEach { runEffectIn(scope, it) }
+            is Effect.Cancellable -> {
+                if (effect.cancelInFlight) effectJobs[effect.id]?.cancel()
+                // Launch a parent job; the wrapped effect's coroutines run as its
+                // children, so cancelling this job cancels the whole subtree.
+                val job = scope.launch { runEffectIn(this, effect.effect) }
+                effectJobs[effect.id] = job
+                job.invokeOnCompletion { effectJobs.remove(effect.id, job) }
+            }
         }
     }
 }

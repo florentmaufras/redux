@@ -1,11 +1,23 @@
 package com.florentmaufras.redux
 
 import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class ScopeTest {
+
+    // Test-only: flatten an effect tree to the actions it would emit (ignoring cancellation).
+    private fun <A> Effect<A>.allActions(): Flow<A> = when (this) {
+        Effect.None, is Effect.Cancel -> emptyFlow()
+        is Effect.Actions -> flow
+        is Effect.Cancellable -> effect.allActions()
+        is Effect.Merge -> merge(*effects.map { it.allActions() }.toTypedArray())
+    }
+
 
     data class ChildState(val count: Int = 0)
     data class ParentState(val child: ChildState = ChildState(), val parentSaw: String? = null)
@@ -61,7 +73,7 @@ class ScopeTest {
         val result = composed.reduce(ParentState(), ParentAction.Child(ChildAction.NotifyParent))
         assertEquals(
             listOf(ParentAction.Child(ChildAction.Increment(100))),
-            result.effect.actions.toList(),
+            result.effect.allActions().toList(),
         )
     }
 }

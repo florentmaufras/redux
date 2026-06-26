@@ -23,6 +23,8 @@ class StoreTest {
         data class Loaded(val value: String) : CounterAction
         data object StartNever : CounterAction
         data object CancelNever : CounterAction
+        data object StartNestedNever : CounterAction
+        data object CancelOuter : CounterAction
     }
 
     private class CounterStore(
@@ -41,6 +43,13 @@ class StoreTest {
                     .cancellable("never"),
             )
             CounterAction.CancelNever -> ReduceResult(state, Effect.cancel("never"))
+            CounterAction.StartNestedNever -> ReduceResult(
+                state,
+                Effect.run<CounterAction> { kotlinx.coroutines.awaitCancellation() }
+                    .cancellable("inner")
+                    .cancellable("outer"),
+            )
+            CounterAction.CancelOuter -> ReduceResult(state, Effect.cancel("outer"))
         }
     }
 
@@ -86,5 +95,17 @@ class StoreTest {
         store.send(CounterAction.CancelNever)
         advanceUntilIdle()
         assertEquals(0, store.trackedEffectJobCount)
+    }
+
+    @Test
+    fun cancellingOuterScope_alsoCancelsNestedInnerEffect() = runTest {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.StartNestedNever)
+        assertEquals(2, store.trackedEffectJobCount)   // outer + inner both tracked
+
+        store.send(CounterAction.CancelOuter)
+        advanceUntilIdle()
+
+        assertEquals(0, store.trackedEffectJobCount)    // inner cleaned up as a child of outer
     }
 }

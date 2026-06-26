@@ -2,42 +2,55 @@ package com.florentmaufras.redux
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge as mergeFlows
 
 /**
  * A unit of asynchronous work, parameterized by the action it feeds back into the
- * store. An effect *is* a `Flow<Action>`; the store collects it and re-sends each
- * emitted action. Build with [none], [run], [send], [merge]; lift with [map];
- * control lifetime with [cancellable] / [cancel].
+ * store. Effects form a small tree: leaf [Actions] produced by [run]/[send],
+ * combined with [merge], scoped for cancellation with [cancellable], lifted with
+ * [map], and stopped with [cancel]. The store interprets the tree; nothing else
+ * needs to know its shape.
  */
-class Effect<out Action> private constructor(
-    internal val actions: Flow<Action>,
-    internal val cancelId: Any? = null,
-    internal val cancelInFlight: Boolean = false,
-    internal val isCancellation: Boolean = false,
-) {
-    fun <T> map(transform: (Action) -> T): Effect<T> =
-        Effect(actions.map(transform), cancelId, cancelInFlight, isCancellation)
+sealed class Effect<out Action> {
+
+    internal data object None : Effect<Nothing>()
+
+    internal class Actions<out Action>(val flow: Flow<Action>) : Effect<Action>()
+
+    internal class Cancellable<out Action>(
+        val id: Any,
+        val cancelInFlight: Boolean,
+        val effect: Effect<Action>,
+    ) : Effect<Action>()
+
+    internal class Cancel(val id: Any) : Effect<Nothing>()
+
+    internal class Merge<out Action>(val effects: List<Effect<Action>>) : Effect<Action>()
+
+    fun <T> map(transform: (Action) -> T): Effect<T> = when (this) {
+        None -> None
+        is Actions -> Actions(flow.map(transform))
+        is Cancellable -> Cancellable(id, cancelInFlight, effect.map(transform))
+        is Cancel -> this
+        is Merge -> Merge(effects.map { it.map(transform) })
+    }
 
     fun cancellable(id: Any, cancelInFlight: Boolean = false): Effect<Action> =
-        Effect(actions, cancelId = id, cancelInFlight = cancelInFlight)
+        Cancellable(id, cancelInFlight, this)
 
     companion object {
-        fun <Action> none(): Effect<Action> = Effect(emptyFlow())
+        fun <Action> none(): Effect<Action> = None
 
         fun <Action> run(block: suspend FlowCollector<Action>.() -> Unit): Effect<Action> =
-            Effect(flow(block))
+            Actions(flow(block))
 
-        fun <Action> send(action: Action): Effect<Action> = Effect(flowOf(action))
+        fun <Action> send(action: Action): Effect<Action> = Actions(flowOf(action))
 
         fun <Action> merge(vararg effects: Effect<Action>): Effect<Action> =
-            Effect(mergeFlows(*effects.map { it.actions }.toTypedArray()))
+            Merge(effects.toList())
 
-        fun <Action> cancel(id: Any): Effect<Action> =
-            Effect(emptyFlow(), cancelId = id, isCancellation = true)
+        fun <Action> cancel(id: Any): Effect<Action> = Cancel(id)
     }
 }
