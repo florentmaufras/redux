@@ -7,6 +7,6 @@ class UniversitiesViewModel(val store: UniversitiesStore) {
     val stateFlow: StateFlow<UniversitiesState> = store.state
 
     fun dispatchAction(action: UniversitiesAction) {
-        store.dispatch(action)
+        store.send(action)
     }
 }
