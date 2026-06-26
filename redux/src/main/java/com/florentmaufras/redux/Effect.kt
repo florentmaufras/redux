@@ -8,6 +8,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge as mergeFlows
 
+/**
+ * A unit of asynchronous work, parameterized by the action it feeds back into the
+ * store. An effect *is* a `Flow<Action>`; the store collects it and re-sends each
+ * emitted action. Build with [none], [run], [send], [merge]; lift with [map];
+ * control lifetime with [cancellable] / [cancel].
+ */
 class Effect<out Action> private constructor(
     internal val actions: Flow<Action>,
     internal val cancelId: Any? = null,

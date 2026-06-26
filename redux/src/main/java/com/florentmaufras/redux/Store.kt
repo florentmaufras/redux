@@ -8,6 +8,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * Single-runtime store. [send] reduces an action, commits the new [state], runs the
+ * returned [Effect], and re-sends the actions it emits. Cancellation is keyed by an
+ * effect's `cancelId`.
+ */
 abstract class Store<State, Action>(initialState: State) : ViewModel() {
 
     protected abstract val reducer: Reducer<State, Action>
