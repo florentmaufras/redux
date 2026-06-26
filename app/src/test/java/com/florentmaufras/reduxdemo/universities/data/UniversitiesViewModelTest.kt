@@ -1,10 +1,10 @@
 package com.florentmaufras.reduxdemo.universities.data
 
+import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
-import io.mockk.every
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -23,12 +23,12 @@ class UniversitiesViewModelTest {
     }
 
     @Test
-    fun dispatchAction_shouldForwardActionToStore() {
+    fun dispatchAction_forwardsToStoreSend() {
         val action = mockk<UniversitiesAction>()
-        justRun { mockedStore.dispatch(action) }
+        justRun { mockedStore.send(action) }
 
         viewModel.dispatchAction(action)
 
-        verify(exactly = 1) { mockedStore.dispatch(action) }
+        verify(exactly = 1) { mockedStore.send(action) }
     }
 }

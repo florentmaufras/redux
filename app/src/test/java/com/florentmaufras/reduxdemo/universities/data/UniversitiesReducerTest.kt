@@ -1,63 +1,46 @@
 package com.florentmaufras.reduxdemo.universities.data
 
-import com.florentmaufras.redux.EffectResult
-import com.florentmaufras.redux.ReduceResult
+import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
+import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class UniversitiesReducerTest {
 
-    private lateinit var universitiesReducer: UniversitiesReducer
+    private lateinit var reducer: UniversitiesReducer
 
     @BeforeEach
     fun setup() {
-        universitiesReducer = UniversitiesReducer()
+        reducer = UniversitiesReducer(universitiesService = mockk(relaxed = true))
     }
 
     @Test
-    fun reduce_shouldHandleLoadUniversitiesAndReturnLoadUniversitiesEffectAndNewState() {
-        val state = UniversitiesState()
-        val country = ""
-
+    fun loadUniversities_setsLoadingAndCountry() {
+        val result = reducer.reduce(UniversitiesState(), UniversitiesAction.LoadUniversities("France"))
         assertEquals(
-            ReduceResult(
-                state.copy(viewState = ViewState.Loading, countrySearched = country),
-                EffectResult.Some(UniversitiesEffect.LoadUniversities(country))
-            ),
-            universitiesReducer.reduce(UniversitiesAction.LoadUniversities(country), state)
+            UniversitiesState(viewState = ViewState.Loading, countrySearched = "France"),
+            result.state,
         )
     }
 
     @Test
-    fun reduce_shouldHandleUniversitiesLoadedAndReturnNewState() {
-        val state = UniversitiesState()
+    fun universitiesLoaded_setsLoadedState() {
         val universities = emptyList<University>()
-
-        assertEquals(
-            ReduceResult(state.copy(viewState = ViewState.Loaded(universities)), EffectResult.None),
-            universitiesReducer.reduce(UniversitiesAction.UniversitiesLoaded(universities), state)
-        )
+        val result = reducer.reduce(UniversitiesState(), UniversitiesAction.UniversitiesLoaded(universities))
+        assertEquals(ViewState.Loaded(universities), result.state.viewState)
     }
 
     @Test
-    fun reduce_shouldHandleLoadErrorAndReturnNewState() {
-        val state = UniversitiesState()
-
-        assertEquals(
-            ReduceResult(state.copy(viewState = ViewState.Error(null)), EffectResult.None),
-            universitiesReducer.reduce(UniversitiesAction.LoadError(null), state)
-        )
+    fun loadError_setsErrorState() {
+        val result = reducer.reduce(UniversitiesState(), UniversitiesAction.LoadError(null))
+        assertEquals(ViewState.Error(null), result.state.viewState)
     }
 
     @Test
-    fun reduce_shouldHandleOpenWebsiteAndReturnOpenWebsiteEffect() {
-        val state = UniversitiesState()
-        val url = "https://example.com"
-
-        assertEquals(
-            ReduceResult(state, EffectResult.Some(UniversitiesEffect.OpenWebsite(url))),
-            universitiesReducer.reduce(UniversitiesAction.OpenWebsite(url), state)
-        )
+    fun openWebsite_leavesStateUnchanged() {
+        val state = UniversitiesState(countrySearched = "France")
+        val result = reducer.reduce(state, UniversitiesAction.OpenWebsite("https://example.com"))
+        assertEquals(state, result.state)
     }
 }

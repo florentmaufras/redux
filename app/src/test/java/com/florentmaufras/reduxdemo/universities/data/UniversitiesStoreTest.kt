@@ -1,22 +1,24 @@
 package com.florentmaufras.reduxdemo.universities.data
 
-import com.florentmaufras.redux.OwnedStateOwner
 import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UniversitiesStoreTest {
 
-    private val mockedService: UniversitiesService = mockk(relaxed = true)
+    private val service: UniversitiesService = mockk()
 
     @BeforeEach
     fun setup() {
@@ -29,14 +31,33 @@ class UniversitiesStoreTest {
     }
 
     @Test
-    fun init_shouldNotThrow_withExplicitDependencies() {
-        assertDoesNotThrow {
-            UniversitiesStore(
-                application = null,
-                stateOwner = OwnedStateOwner(UniversitiesState()),
-                reducer = UniversitiesReducer(),
-                effectHandler = UniversitiesEffectHandler(mockedService)
-            )
-        }
+    fun loadUniversities_emitsLoadedStateFromService() = runTest {
+        val universities = listOf(mockk<University>())
+        coEvery { service.getUniversities("France") } returns universities
+
+        val store = UniversitiesStore(
+            initialState = UniversitiesState(countrySearched = ""),
+            reducer = UniversitiesReducer(universitiesService = service),
+        )
+
+        store.send(UniversitiesAction.LoadUniversities("France"))
+        advanceUntilIdle()
+
+        assertEquals(ViewState.Loaded(universities), store.currentState.viewState)
+    }
+
+    @Test
+    fun loadUniversities_emitsErrorStateOnFailure() = runTest {
+        coEvery { service.getUniversities("France") } throws RuntimeException("boom")
+
+        val store = UniversitiesStore(
+            initialState = UniversitiesState(countrySearched = ""),
+            reducer = UniversitiesReducer(universitiesService = service),
+        )
+
+        store.send(UniversitiesAction.LoadUniversities("France"))
+        advanceUntilIdle()
+
+        assertEquals(ViewState.Error("boom"), store.currentState.viewState)
     }
 }
