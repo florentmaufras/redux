@@ -1,0 +1,67 @@
+package com.florentmaufras.redux
+
+import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.runTest
+import org.junit.Test
+
+class ScopeTest {
+
+    data class ChildState(val count: Int = 0)
+    data class ParentState(val child: ChildState = ChildState(), val parentSaw: String? = null)
+
+    sealed interface ChildAction {
+        data class Increment(val by: Int) : ChildAction
+        data object NotifyParent : ChildAction
+    }
+
+    sealed interface ParentAction {
+        data class Child(val action: ChildAction) : ParentAction
+    }
+
+    private val childReducer = Reducer<ChildState, ChildAction> { state, action ->
+        when (action) {
+            is ChildAction.Increment -> ReduceResult(state.copy(count = state.count + action.by))
+            ChildAction.NotifyParent -> ReduceResult(state, Effect.send(ChildAction.Increment(100)))
+        }
+    }
+
+    private val parentReducer = Reducer<ParentState, ParentAction> { state, action ->
+        when (action) {
+            is ParentAction.Child ->
+                if (action.action is ChildAction.NotifyParent)
+                    ReduceResult(state.copy(parentSaw = "notified"))
+                else ReduceResult(state)
+        }
+    }
+
+    private val scope = object : Scope<ParentState, ParentAction, ChildState, ChildAction> {
+        override val toChildState: (ParentState) -> ChildState = { it.child }
+        override val fromChildState: (ParentState, ChildState) -> ParentState = { p, c -> p.copy(child = c) }
+        override val toChildAction: (ParentAction) -> ChildAction? = { (it as? ParentAction.Child)?.action }
+        override val embedChildAction: (ChildAction) -> ParentAction = { ParentAction.Child(it) }
+    }
+
+    private val composed = parentReducer.scope(scope, childReducer)
+
+    @Test
+    fun childAction_updatesChildStateInParent() {
+        val result = composed.reduce(ParentState(), ParentAction.Child(ChildAction.Increment(5)))
+        assertEquals(ChildState(count = 5), result.state.child)
+    }
+
+    @Test
+    fun parentReducer_observesChildAction() {
+        val result = composed.reduce(ParentState(), ParentAction.Child(ChildAction.NotifyParent))
+        assertEquals("notified", result.state.parentSaw)
+    }
+
+    @Test
+    fun childEffect_isLiftedToParentActions() = runTest {
+        val result = composed.reduce(ParentState(), ParentAction.Child(ChildAction.NotifyParent))
+        assertEquals(
+            listOf(ParentAction.Child(ChildAction.Increment(100))),
+            result.effect.actions.toList(),
+        )
+    }
+}
