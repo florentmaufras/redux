@@ -1,13 +1,22 @@
 package com.florentmaufras.redux
 
 import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ForEachTest {
 
     // Test-only: flatten an effect tree to the actions it would emit (ignoring cancellation).
@@ -67,6 +76,10 @@ class ForEachTest {
 
     private val composed = parentReducer.forEach(scope, childReducer)
 
+    private class ListStore(
+        override val reducer: Reducer<ListState, ListAction>,
+    ) : Store<ListState, ListAction>(ListState(counters = listOf(Counter(1), Counter(2))))
+
     @Test
     fun elementAction_updatesOnlyMatchingChild() {
         val state = ListState(counters = listOf(Counter(1), Counter(2)))
@@ -97,5 +110,28 @@ class ForEachTest {
         val result = composed.reduce(state, ListAction.Element(99, CounterAction.Add(5)))
         assertEquals(state, result.state)
         assertEquals(emptyList<ListAction>(), result.effect.allActions().toList())
+    }
+
+    @Before
+    fun setup() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun siblingElementEffects_cancelIndependently() = runTest {
+        val store = ListStore(reducer = composed)
+
+        store.send(ListAction.Element(1, CounterAction.Work))
+        store.send(ListAction.Element(2, CounterAction.Work))
+        assertEquals(2, store.trackedEffectJobCount)
+
+        store.send(ListAction.Element(1, CounterAction.Stop))   // cancels only element 1's effect
+        advanceUntilIdle()
+        assertEquals(1, store.trackedEffectJobCount)            // element 2 still running
     }
 }

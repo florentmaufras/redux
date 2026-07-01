@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.florentmaufras.redux"
     group = "com.florentmaufras"
-    version = "3.0.0"
+    version = "3.1.0"
     compileSdk {
         version = release(36)
     }
