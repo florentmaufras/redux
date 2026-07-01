@@ -25,6 +25,7 @@ class StoreTest {
         data object CancelNever : CounterAction
         data object StartNestedNever : CounterAction
         data object CancelOuter : CounterAction
+        data object LoadTracked : CounterAction
     }
 
     private class CounterStore(
@@ -50,6 +51,10 @@ class StoreTest {
                     .cancellable("outer"),
             )
             CounterAction.CancelOuter -> ReduceResult(state, Effect.cancel("outer"))
+            CounterAction.LoadTracked -> ReduceResult(
+                state,
+                Effect.run { emit(CounterAction.Loaded("ok")) }.cancellable("load"),
+            )
         }
     }
 
@@ -80,11 +85,21 @@ class StoreTest {
     }
 
     @Test
-    fun completedEffectJob_isRemovedFromTracking() = runTest {
+    fun nonCancellableEffect_isNeverTracked() = runTest {
         val store = CounterStore(reducer = reducer)
-        store.send(CounterAction.Load)   // finite effect, no cancelId
+        store.send(CounterAction.Load)   // finite effect without a cancellable id
         advanceUntilIdle()
         assertEquals(0, store.trackedEffectJobCount)
+        assertEquals("ok", store.currentState.loaded)
+    }
+
+    @Test
+    fun cancellableEffect_isRemovedFromTrackingWhenItCompletes() = runTest {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.LoadTracked)   // finite effect tagged cancellable("load")
+        advanceUntilIdle()
+        assertEquals("ok", store.currentState.loaded)
+        assertEquals(0, store.trackedEffectJobCount)   // job removed after normal completion
     }
 
     @Test
@@ -95,6 +110,18 @@ class StoreTest {
         store.send(CounterAction.CancelNever)
         advanceUntilIdle()
         assertEquals(0, store.trackedEffectJobCount)
+    }
+
+    @Test
+    fun twoEffectsWithSameId_bothRunConcurrently_andCancelStopsAll() = runTest {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.StartNever)   // cancellable("never"), cancelInFlight = false
+        store.send(CounterAction.StartNever)   // same id, must not orphan the first
+        assertEquals(2, store.trackedEffectJobCount)
+
+        store.send(CounterAction.CancelNever)
+        advanceUntilIdle()
+        assertEquals(0, store.trackedEffectJobCount)   // cancel(id) cancels every job under the id
     }
 
     @Test

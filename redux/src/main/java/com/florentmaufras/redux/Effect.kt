@@ -37,12 +37,24 @@ sealed class Effect<out Action> {
         is Merge -> Merge(effects.map { it.map(transform) })
     }
 
+    /**
+     * Tags this effect so the store tracks it under [id] and can [cancel] it. Ids share
+     * one store-global namespace across every composed feature, so prefer distinct types
+     * (an `enum`/`object`) over bare strings to avoid cross-feature collisions. Effects
+     * sharing an [id] with `cancelInFlight = false` run concurrently; passing `true`
+     * cancels any in-flight effect(s) under [id] before this one starts.
+     */
     fun cancellable(id: Any, cancelInFlight: Boolean = false): Effect<Action> =
         Cancellable(id, cancelInFlight, this)
 
     companion object {
         fun <Action> none(): Effect<Action> = None
 
+        /**
+         * Runs [block] as asynchronous work, emitting actions back into the store. The
+         * block must handle its own failures (e.g. wrap calls in try/catch and emit an
+         * error action); an uncaught exception escapes to the coroutine's uncaught handler.
+         */
         fun <Action> run(block: suspend FlowCollector<Action>.() -> Unit): Effect<Action> =
             Actions(flow(block))
 
@@ -51,6 +63,7 @@ sealed class Effect<out Action> {
         fun <Action> merge(vararg effects: Effect<Action>): Effect<Action> =
             Merge(effects.toList())
 
+        /** Cancels every in-flight effect tagged with [id] via [cancellable]. */
         fun <Action> cancel(id: Any): Effect<Action> = Cancel(id)
     }
 }

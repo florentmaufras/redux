@@ -1,14 +1,34 @@
 package com.florentmaufras.redux
 
 import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ScopeTest {
+
+    @Before
+    fun setup() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     // Test-only: flatten an effect tree to the actions it would emit (ignoring cancellation).
     private fun <A> Effect<A>.allActions(): Flow<A> = when (this) {
@@ -25,6 +45,8 @@ class ScopeTest {
     sealed interface ChildAction {
         data class Increment(val by: Int) : ChildAction
         data object NotifyParent : ChildAction
+        data object StartWork : ChildAction
+        data object StopWork : ChildAction
     }
 
     sealed interface ParentAction {
@@ -35,6 +57,9 @@ class ScopeTest {
         when (action) {
             is ChildAction.Increment -> ReduceResult(state.copy(count = state.count + action.by))
             ChildAction.NotifyParent -> ReduceResult(state, Effect.send(ChildAction.Increment(100)))
+            ChildAction.StartWork ->
+                ReduceResult(state, Effect.run<ChildAction> { awaitCancellation() }.cancellable("child-work"))
+            ChildAction.StopWork -> ReduceResult(state, Effect.cancel("child-work"))
         }
     }
 
@@ -56,6 +81,10 @@ class ScopeTest {
 
     private val composed = parentReducer.scope(scope, childReducer)
 
+    private class ScopedStore(
+        override val reducer: Reducer<ParentState, ParentAction>,
+    ) : Store<ParentState, ParentAction>(ParentState())
+
     @Test
     fun childAction_updatesChildStateInParent() {
         val result = composed.reduce(ParentState(), ParentAction.Child(ChildAction.Increment(5)))
@@ -75,5 +104,17 @@ class ScopeTest {
             listOf(ParentAction.Child(ChildAction.Increment(100))),
             result.effect.allActions().toList(),
         )
+    }
+
+    @Test
+    fun childCancellableEffect_isCancelledThroughParentStore() = runTest {
+        val store = ScopedStore(reducer = composed)
+
+        store.send(ParentAction.Child(ChildAction.StartWork))
+        assertEquals(1, store.trackedEffectJobCount)   // child effect lifted into the store's namespace
+
+        store.send(ParentAction.Child(ChildAction.StopWork))
+        advanceUntilIdle()
+        assertEquals(0, store.trackedEffectJobCount)    // cancellation composes through scope
     }
 }
