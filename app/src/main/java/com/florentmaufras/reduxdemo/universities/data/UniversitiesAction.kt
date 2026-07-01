@@ -1,11 +1,8 @@
 package com.florentmaufras.reduxdemo.universities.data
 
-import com.florentmaufras.redux.Action
-
-sealed class UniversitiesAction: Action {
-    data class LoadUniversities(val country: String): UniversitiesAction()
-    data class UniversitiesLoaded(val universities: ArrayList<University>): UniversitiesAction()
-    data object LoadError: UniversitiesAction()
-    data class LoadWebsite(val website: String): UniversitiesAction()
-    data object WebsiteLoaded: UniversitiesAction()
+sealed class UniversitiesAction {
+    data class LoadUniversities(val country: String) : UniversitiesAction()
+    data class UniversitiesLoaded(val universities: List<University>) : UniversitiesAction()
+    data class LoadError(val message: String? = null) : UniversitiesAction()
+    data class OpenWebsite(val url: String) : UniversitiesAction()
 }

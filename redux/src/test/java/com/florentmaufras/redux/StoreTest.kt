@@ -1,7 +1,138 @@
 package com.florentmaufras.redux
 
-class StoreTest(
-    initialName: String,
-    override val reducer: ReducerTest,
-    override val effectHandler: EffectHandlerTest
-) : Store<ActionTest, StateTest, EffectTest, ReducerTest, EffectHandlerTest>(StateTest(initialName))
+import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class StoreTest {
+
+    data class CounterState(val count: Int = 0, val loaded: String? = null)
+
+    sealed interface CounterAction {
+        data class Add(val by: Int) : CounterAction
+        data object Load : CounterAction
+        data class Loaded(val value: String) : CounterAction
+        data object StartNever : CounterAction
+        data object CancelNever : CounterAction
+        data object StartNestedNever : CounterAction
+        data object CancelOuter : CounterAction
+        data object LoadTracked : CounterAction
+    }
+
+    private class CounterStore(
+        initial: CounterState = CounterState(),
+        override val reducer: Reducer<CounterState, CounterAction>,
+    ) : Store<CounterState, CounterAction>(initial)
+
+    private val reducer = Reducer<CounterState, CounterAction> { state, action ->
+        when (action) {
+            is CounterAction.Add -> ReduceResult(state.copy(count = state.count + action.by))
+            CounterAction.Load -> ReduceResult(state, Effect.run { emit(CounterAction.Loaded("ok")) })
+            is CounterAction.Loaded -> ReduceResult(state.copy(loaded = action.value))
+            CounterAction.StartNever -> ReduceResult(
+                state,
+                Effect.run<CounterAction> { kotlinx.coroutines.awaitCancellation() }
+                    .cancellable("never"),
+            )
+            CounterAction.CancelNever -> ReduceResult(state, Effect.cancel("never"))
+            CounterAction.StartNestedNever -> ReduceResult(
+                state,
+                Effect.run<CounterAction> { kotlinx.coroutines.awaitCancellation() }
+                    .cancellable("inner")
+                    .cancellable("outer"),
+            )
+            CounterAction.CancelOuter -> ReduceResult(state, Effect.cancel("outer"))
+            CounterAction.LoadTracked -> ReduceResult(
+                state,
+                Effect.run { emit(CounterAction.Loaded("ok")) }.cancellable("load"),
+            )
+        }
+    }
+
+    @Before
+    fun setup() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun send_reducesAndUpdatesState() {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.Add(3))
+        assertEquals(3, store.currentState.count)
+        assertEquals(CounterState(count = 3), store.state.value)
+    }
+
+    @Test
+    fun effect_feedsEmittedActionBackThroughSend() = runTest {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.Load)
+        advanceUntilIdle()
+        assertEquals("ok", store.currentState.loaded)
+    }
+
+    @Test
+    fun nonCancellableEffect_isNeverTracked() = runTest {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.Load)   // finite effect without a cancellable id
+        advanceUntilIdle()
+        assertEquals(0, store.trackedEffectJobCount)
+        assertEquals("ok", store.currentState.loaded)
+    }
+
+    @Test
+    fun cancellableEffect_isRemovedFromTrackingWhenItCompletes() = runTest {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.LoadTracked)   // finite effect tagged cancellable("load")
+        advanceUntilIdle()
+        assertEquals("ok", store.currentState.loaded)
+        assertEquals(0, store.trackedEffectJobCount)   // job removed after normal completion
+    }
+
+    @Test
+    fun cancel_stopsInFlightEffectUnderId() = runTest {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.StartNever)
+        assertEquals(1, store.trackedEffectJobCount)
+        store.send(CounterAction.CancelNever)
+        advanceUntilIdle()
+        assertEquals(0, store.trackedEffectJobCount)
+    }
+
+    @Test
+    fun twoEffectsWithSameId_bothRunConcurrently_andCancelStopsAll() = runTest {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.StartNever)   // cancellable("never"), cancelInFlight = false
+        store.send(CounterAction.StartNever)   // same id, must not orphan the first
+        assertEquals(2, store.trackedEffectJobCount)
+
+        store.send(CounterAction.CancelNever)
+        advanceUntilIdle()
+        assertEquals(0, store.trackedEffectJobCount)   // cancel(id) cancels every job under the id
+    }
+
+    @Test
+    fun cancellingOuterScope_alsoCancelsNestedInnerEffect() = runTest {
+        val store = CounterStore(reducer = reducer)
+        store.send(CounterAction.StartNestedNever)
+        assertEquals(2, store.trackedEffectJobCount)   // outer + inner both tracked
+
+        store.send(CounterAction.CancelOuter)
+        advanceUntilIdle()
+
+        assertEquals(0, store.trackedEffectJobCount)    // inner cleaned up as a child of outer
+    }
+}

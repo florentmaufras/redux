@@ -1,5 +1,6 @@
 package com.florentmaufras.redux
 
-interface Reducer<Action: com.florentmaufras.redux.Action, State: com.florentmaufras.redux.State, Effect: com.florentmaufras.redux.Effect> {
-    fun reduce(action: Action, state: State) : ReduceResult<State, Effect?>
+/** Pure function: given [State] and an [Action], returns the next state and an [Effect]. */
+fun interface Reducer<State, Action> {
+    fun reduce(state: State, action: Action): ReduceResult<State, Action>
 }

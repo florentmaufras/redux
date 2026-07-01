@@ -1,6 +1,6 @@
 package com.florentmaufras.reduxdemo.universities.ui
 
-import android.content.Intent
+import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +19,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,30 +26,31 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.florentmaufras.reduxdemo.universities.data.UniversitiesAction
-import com.florentmaufras.reduxdemo.universities.data.UniversitiesViewModel
-import com.florentmaufras.reduxdemo.universities.data.University
-import androidx.core.net.toUri
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.florentmaufras.reduxdemo.universities.data.UniversitiesAction
+import com.florentmaufras.reduxdemo.universities.data.UniversitiesStore
+import com.florentmaufras.reduxdemo.universities.data.University
+import com.florentmaufras.reduxdemo.universities.data.ViewState
 
 @Composable
-fun UniversitiesScreen(viewModel: UniversitiesViewModel = viewModel()) {
-    val state = viewModel.stateFlow.collectAsState()
-    val context = LocalContext.current
-    val textFieldState = rememberTextFieldState(state.value.countrySearched)
-
-    LaunchedEffect(state.value.website) {
-        val website = state.value.website
-        if (website?.isNotBlank() == true) {
-            viewModel.dispatchAction(UniversitiesAction.WebsiteLoaded)
-            context.startActivity(Intent(Intent.ACTION_VIEW, website.toUri()))
+fun UniversitiesScreen() {
+    val context = LocalContext.current  // read here, in composable scope
+    val store: UniversitiesStore = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                val app = context.applicationContext as Application
+                @Suppress("UNCHECKED_CAST")
+                return UniversitiesStore(application = app) as T
+            }
         }
-    }
+    )
+    val state = store.state.collectAsState()
+    val textFieldState = rememberTextFieldState(state.value.countrySearched)
 
     Column(
         modifier = Modifier.padding(8.dp)
     ) {
-
         Text(
             text = "Welcome to that small simple demo app!",
             modifier = Modifier.padding(8.dp)
@@ -63,20 +63,20 @@ fun UniversitiesScreen(viewModel: UniversitiesViewModel = viewModel()) {
             state = textFieldState,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
             onKeyboardAction = KeyboardActionHandler {
-                viewModel.dispatchAction(UniversitiesAction.LoadUniversities(textFieldState.text.toString()))
+                store.send(UniversitiesAction.LoadUniversities(textFieldState.text.toString()))
             },
             lineLimits = TextFieldLineLimits.SingleLine,
             modifier = Modifier.padding(8.dp),
         )
 
-        when {
-            state.value.isLoading -> UniversitiesLoading()
-            state.value.hasError -> UniversitiesError()
-            state.value.universities.isEmpty() -> UniversitiesNoResult(state.value.countrySearched)
-            else -> UniversitiesContent(
-                state.value.universities,
-                viewModel::dispatchAction
-            )
+        when (val vs = state.value.viewState) {
+            ViewState.Idle -> UniversitiesNoResult(state.value.countrySearched)
+            ViewState.Loading -> UniversitiesLoading()
+            is ViewState.Error -> UniversitiesError(vs.message)
+            is ViewState.Loaded -> {
+                if (vs.universities.isEmpty()) UniversitiesNoResult(state.value.countrySearched)
+                else UniversitiesContent(vs.universities, store::send)
+            }
         }
     }
 }
@@ -92,14 +92,12 @@ private fun UniversitiesLoading() {
 }
 
 @Composable
-private fun UniversitiesError() {
+private fun UniversitiesError(message: String?) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            "Oupsy daisy! Something went wrong!"
-        )
+        Text(if (message != null) "Error: $message" else "Oupsy daisy! Something went wrong!")
     }
 }
 
@@ -109,15 +107,13 @@ private fun UniversitiesNoResult(country: String) {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            "No result found for this search: $country"
-        )
+        Text("No result found for this search: $country")
     }
 }
 
 @Composable
 private fun UniversitiesContent(
-    universities: ArrayList<University>,
+    universities: List<University>,
     dispatchAction: (UniversitiesAction) -> Unit,
 ) {
     LazyVerticalGrid(
@@ -147,7 +143,7 @@ private fun UniversitiesContent(
                     if (university.webPages?.isNotEmpty() == true) {
                         Button(
                             onClick = {
-                                dispatchAction(UniversitiesAction.LoadWebsite(university.webPages[0]))
+                                dispatchAction(UniversitiesAction.OpenWebsite(university.webPages[0]))
                             },
                             modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 16.dp)
                         ) {

@@ -1,41 +1,40 @@
 package com.florentmaufras.reduxdemo.universities.data
 
+import com.florentmaufras.redux.Effect
 import com.florentmaufras.redux.ReduceResult
 import com.florentmaufras.redux.Reducer
+import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
+import timber.log.Timber
 
-class UniversitiesReducer : Reducer<UniversitiesAction, UniversitiesState, UniversitiesEffect> {
+class UniversitiesReducer(
+    private val universitiesService: UniversitiesService,
+    private val openUrl: (String) -> Unit = {},
+    private val timber: Timber.Tree = Timber.asTree(),
+) : Reducer<UniversitiesState, UniversitiesAction> {
+
     override fun reduce(
+        state: UniversitiesState,
         action: UniversitiesAction,
-        state: UniversitiesState
-    ): ReduceResult<UniversitiesState, UniversitiesEffect?> {
-        var effect: UniversitiesEffect? = null
-        var newState: UniversitiesState = state
-        when (action) {
-            is UniversitiesAction.LoadUniversities -> {
-                newState = state.copy(
-                    isLoading = true,
-                    countrySearched = action.country,
-                    hasError = false
-                )
-                effect = UniversitiesEffect.LoadUniversities(action.country)
-            }
+    ): ReduceResult<UniversitiesState, UniversitiesAction> = when (action) {
+        is UniversitiesAction.LoadUniversities -> ReduceResult(
+            state.copy(viewState = ViewState.Loading, countrySearched = action.country),
+            Effect.run<UniversitiesAction> {
+                try {
+                    emit(UniversitiesAction.UniversitiesLoaded(universitiesService.getUniversities(action.country)))
+                } catch (e: Exception) {
+                    timber.e(e)
+                    emit(UniversitiesAction.LoadError(e.message))
+                }
+            }.cancellable("search", cancelInFlight = true),
+        )
 
-            is UniversitiesAction.UniversitiesLoaded -> {
-                newState = state.copy(isLoading = false, universities = action.universities)
-            }
+        is UniversitiesAction.UniversitiesLoaded ->
+            ReduceResult(state.copy(viewState = ViewState.Loaded(action.universities)))
 
-            is UniversitiesAction.LoadError -> {
-                newState = state.copy(isLoading = false, hasError = true)
-            }
+        is UniversitiesAction.LoadError ->
+            ReduceResult(state.copy(viewState = ViewState.Error(action.message)))
 
-            is UniversitiesAction.LoadWebsite -> {
-                newState = state.copy(website = action.website)
-            }
-
-            is UniversitiesAction.WebsiteLoaded -> {
-                newState = state.copy(website = null)
-            }
-        }
-        return ReduceResult(newState, effect)
+        is UniversitiesAction.OpenWebsite ->
+            ReduceResult(state, Effect.run { openUrl(action.url) })
     }
 }
