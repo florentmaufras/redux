@@ -43,4 +43,10 @@ class ChronometersReducerTest {
         )
         assertEquals(listOf(0, 6), result.state.chronometers.map { it.elapsedSeconds })
     }
+
+    @Test
+    fun broadcastOnEmptyState_isHarmlessNoOp() {
+        val result = chronometersReducer.reduce(ChronometersState(), ChronometersAction.PauseAll)
+        assertEquals(ChronometersState(), result.state)
+    }
 }
