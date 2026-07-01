@@ -29,6 +29,12 @@ fun <ParentState, ParentAction, ChildState, ChildAction> Reducer<ParentState, Pa
  * An action for an id not present in the collection is a no-op. Elements keep their order.
  * Cancellation is not auto-namespaced: a child keys its cancellable effects on its own
  * `state.id`, and the parent emits `Effect.cancel(id)` when it removes an element.
+ *
+ * Because ids are not namespaced, element ids must be unique across the whole store, not
+ * just within this collection — the cancel-id namespace is store-global (see
+ * [Effect.cancellable]). Prefer a distinct id type per collection, or a composite key such
+ * as `state.id to "tick"`, so an element's effect never collides with a parent effect or
+ * another collection's element.
  */
 fun <ParentState, ParentAction, ChildState, ChildAction, Id> Reducer<ParentState, ParentAction>.forEach(
     scope: ForEachScope<ParentState, ParentAction, ChildState, ChildAction, Id>,
