@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,7 +30,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesAction
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesStore
-import com.florentmaufras.reduxdemo.universities.data.UniversitiesViewModel
 import com.florentmaufras.reduxdemo.universities.data.University
 import com.florentmaufras.reduxdemo.universities.data.ViewState
 
@@ -47,8 +45,7 @@ fun UniversitiesScreen() {
             }
         }
     )
-    val viewModel = remember { UniversitiesViewModel(store) }
-    val state = viewModel.stateFlow.collectAsState()
+    val state = store.state.collectAsState()
     val textFieldState = rememberTextFieldState(state.value.countrySearched)
 
     Column(
@@ -66,7 +63,7 @@ fun UniversitiesScreen() {
             state = textFieldState,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
             onKeyboardAction = KeyboardActionHandler {
-                viewModel.dispatchAction(UniversitiesAction.LoadUniversities(textFieldState.text.toString()))
+                store.send(UniversitiesAction.LoadUniversities(textFieldState.text.toString()))
             },
             lineLimits = TextFieldLineLimits.SingleLine,
             modifier = Modifier.padding(8.dp),
@@ -78,7 +75,7 @@ fun UniversitiesScreen() {
             is ViewState.Error -> UniversitiesError(vs.message)
             is ViewState.Loaded -> {
                 if (vs.universities.isEmpty()) UniversitiesNoResult(state.value.countrySearched)
-                else UniversitiesContent(vs.universities, viewModel::dispatchAction)
+                else UniversitiesContent(vs.universities, store::send)
             }
         }
     }
