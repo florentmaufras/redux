@@ -1,6 +1,5 @@
 package com.florentmaufras.reduxdemo.universities.ui
 
-import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,38 +18,24 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesAction
-import com.florentmaufras.reduxdemo.universities.data.UniversitiesStore
+import com.florentmaufras.reduxdemo.universities.data.UniversitiesState
 import com.florentmaufras.reduxdemo.universities.data.University
 import com.florentmaufras.reduxdemo.universities.data.ViewState
 
 @Composable
-fun UniversitiesScreen() {
-    val context = LocalContext.current  // read here, in composable scope
-    val store: UniversitiesStore = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                val app = context.applicationContext as Application
-                @Suppress("UNCHECKED_CAST")
-                return UniversitiesStore(application = app) as T
-            }
-        }
-    )
-    val state = store.state.collectAsState()
-    val textFieldState = rememberTextFieldState(state.value.countrySearched)
+fun UniversitiesScreen(
+    state: UniversitiesState,
+    send: (UniversitiesAction) -> Unit,
+) {
+    val textFieldState = rememberTextFieldState(state.countrySearched)
 
-    Column(
-        modifier = Modifier.padding(8.dp)
-    ) {
+    Column(modifier = Modifier.padding(8.dp)) {
         Text(
             text = "Welcome to that small simple demo app!",
             modifier = Modifier.padding(8.dp)
@@ -63,19 +48,19 @@ fun UniversitiesScreen() {
             state = textFieldState,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
             onKeyboardAction = KeyboardActionHandler {
-                store.send(UniversitiesAction.LoadUniversities(textFieldState.text.toString()))
+                send(UniversitiesAction.LoadUniversities(textFieldState.text.toString()))
             },
             lineLimits = TextFieldLineLimits.SingleLine,
             modifier = Modifier.padding(8.dp),
         )
 
-        when (val vs = state.value.viewState) {
-            ViewState.Idle -> UniversitiesNoResult(state.value.countrySearched)
+        when (val vs = state.viewState) {
+            ViewState.Idle -> UniversitiesNoResult(state.countrySearched)
             ViewState.Loading -> UniversitiesLoading()
             is ViewState.Error -> UniversitiesError(vs.message)
             is ViewState.Loaded -> {
-                if (vs.universities.isEmpty()) UniversitiesNoResult(state.value.countrySearched)
-                else UniversitiesContent(vs.universities, store::send)
+                if (vs.universities.isEmpty()) UniversitiesNoResult(state.countrySearched)
+                else UniversitiesContent(vs.universities, send)
             }
         }
     }
