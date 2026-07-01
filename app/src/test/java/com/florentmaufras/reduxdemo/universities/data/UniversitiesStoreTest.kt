@@ -1,5 +1,6 @@
 package com.florentmaufras.reduxdemo.universities.data
 
+import com.florentmaufras.redux.TestStore
 import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -35,29 +36,31 @@ class UniversitiesStoreTest {
         val universities = listOf(mockk<University>())
         coEvery { service.getUniversities("France") } returns universities
 
-        val store = UniversitiesStore(
-            initialState = UniversitiesState(countrySearched = ""),
-            reducer = UniversitiesReducer(universitiesService = service),
+        val store = TestStore(
+            UniversitiesState(countrySearched = ""),
+            UniversitiesReducer(universitiesService = service),
         )
 
         store.send(UniversitiesAction.LoadUniversities("France"))
         advanceUntilIdle()
 
         assertEquals(ViewState.Loaded(universities), store.currentState.viewState)
+        assertEquals(UniversitiesAction.UniversitiesLoaded(universities), store.receivedActions.last())
     }
 
     @Test
     fun loadUniversities_emitsErrorStateOnFailure() = runTest {
         coEvery { service.getUniversities("France") } throws RuntimeException("boom")
 
-        val store = UniversitiesStore(
-            initialState = UniversitiesState(countrySearched = ""),
-            reducer = UniversitiesReducer(universitiesService = service),
+        val store = TestStore(
+            UniversitiesState(countrySearched = ""),
+            UniversitiesReducer(universitiesService = service),
         )
 
         store.send(UniversitiesAction.LoadUniversities("France"))
         advanceUntilIdle()
 
         assertEquals(ViewState.Error("boom"), store.currentState.viewState)
+        assertEquals(UniversitiesAction.LoadError("boom"), store.receivedActions.last())
     }
 }
