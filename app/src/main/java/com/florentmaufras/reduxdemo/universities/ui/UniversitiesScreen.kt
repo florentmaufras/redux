@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesAction
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesState
@@ -140,39 +139,4 @@ private fun UniversitiesContent(
             }
         }
     }
-}
-
-private fun previewUniversity(name: String, withWebsite: Boolean) = University(
-    country = "Canada",
-    webPages = if (withWebsite) arrayListOf("https://example.com") else null,
-    stateProvince = null,
-    alphaTwoCode = "CA",
-    domains = arrayListOf("example.com"),
-    name = name,
-)
-
-@Preview(showBackground = true)
-@Composable
-private fun UniversitiesScreenLoadedPreview() {
-    UniversitiesScreen(
-        state = UniversitiesState(
-            countrySearched = "Canada",
-            viewState = ViewState.Loaded(
-                listOf(
-                    previewUniversity("University of Toronto", withWebsite = true),
-                    previewUniversity("McGill University", withWebsite = false),
-                )
-            ),
-        ),
-        send = {},
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun UniversitiesScreenLoadingPreview() {
-    UniversitiesScreen(
-        state = UniversitiesState(countrySearched = "Canada", viewState = ViewState.Loading),
-        send = {},
-    )
 }

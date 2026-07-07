@@ -11,7 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.florentmaufras.reduxdemo.chronometers.data.ChronometerAction
 import com.florentmaufras.reduxdemo.chronometers.data.ChronometerState
@@ -38,7 +37,7 @@ fun ChronometersSection(
 }
 
 @Composable
-private fun ChronometerRow(
+internal fun ChronometerRow(
     state: ChronometerState,
     dispatch: (ChronometersAction) -> Unit,
 ) {
@@ -70,37 +69,4 @@ private fun formatElapsed(totalSeconds: Int): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "%d:%02d".format(minutes, seconds)
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun ChronometersSectionPreview() {
-    ChronometersSection(
-        state = ChronometersState(
-            chronometers = listOf(
-                ChronometerState(id = 0, elapsedSeconds = 7, isRunning = true),
-                ChronometerState(id = 1, elapsedSeconds = 125, isRunning = false),
-            ),
-            nextId = 2,
-        ),
-        dispatch = {},
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun ChronometerRowRunningPreview() {
-    ChronometerRow(
-        state = ChronometerState(id = 0, elapsedSeconds = 75, isRunning = true),
-        dispatch = {},
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun ChronometerRowPausedPreview() {
-    ChronometerRow(
-        state = ChronometerState(id = 0, elapsedSeconds = 0, isRunning = false),
-        dispatch = {},
-    )
 }
