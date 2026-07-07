@@ -1,11 +1,11 @@
 package com.florentmaufras.reduxdemo.app
 
 import com.florentmaufras.redux.TestStore
-import com.florentmaufras.reduxdemo.chronometers.data.ChronometerAction
 import com.florentmaufras.reduxdemo.chronometers.data.ChronometersAction
 import com.florentmaufras.reduxdemo.universities.api.UniversitiesService
 import com.florentmaufras.reduxdemo.universities.data.University
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesReducer
+import com.florentmaufras.reduxdemo.universities.data.UniversitiesState
 import com.florentmaufras.reduxdemo.universities.data.ViewState
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -60,5 +60,21 @@ class AppStoreTest {
         assertEquals(ViewState.Idle, store.currentState.universities.viewState) // universities untouched
 
         store.send(AppAction.Chronometers(ChronometersAction.PauseAll))
+    }
+
+    @Test
+    fun onAppear_whenAlreadyLoaded_doesNotReload() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val universities = listOf(mockk<University>())
+        val store = TestStore(
+            AppState(universities = UniversitiesState(viewState = ViewState.Loaded(universities))),
+            appReducer(UniversitiesReducer(universitiesService = service)),
+        )
+
+        store.send(AppAction.OnAppear)
+        advanceUntilIdle()
+
+        // No reload: state stays Loaded (a reload would flip viewState to Loading).
+        assertEquals(ViewState.Loaded(universities), store.currentState.universities.viewState)
     }
 }

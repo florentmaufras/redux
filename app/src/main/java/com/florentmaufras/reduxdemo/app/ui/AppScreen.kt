@@ -1,6 +1,7 @@
 package com.florentmaufras.reduxdemo.app.ui
 
 import android.app.Application
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -36,7 +37,7 @@ fun AppScreen() {
 
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         ChronometersSection(state.chronometers) { store.send(AppAction.Chronometers(it)) }
-        androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.weight(1f)) {
             UniversitiesScreen(state.universities) { store.send(AppAction.Universities(it)) }
         }
     }

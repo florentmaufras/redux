@@ -11,6 +11,7 @@ import com.florentmaufras.reduxdemo.chronometers.data.chronometersReducer
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesAction
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesReducer
 import com.florentmaufras.reduxdemo.universities.data.UniversitiesState
+import com.florentmaufras.reduxdemo.universities.data.ViewState
 
 private val universitiesScope =
     object : Scope<AppState, AppAction, UniversitiesState, UniversitiesAction> {
@@ -32,7 +33,9 @@ fun appReducer(universitiesReducer: UniversitiesReducer): Reducer<AppState, AppA
     val base = Reducer<AppState, AppAction> { state, action ->
         when (action) {
             AppAction.OnAppear ->
-                if (state.universities.countrySearched.isNotBlank()) {
+                if (state.universities.countrySearched.isNotBlank() &&
+                    state.universities.viewState == ViewState.Idle
+                ) {
                     ReduceResult(
                         state,
                         Effect.send(
