@@ -11,11 +11,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.florentmaufras.reduxdemo.app.AppAction
+import com.florentmaufras.reduxdemo.app.AppState
 import com.florentmaufras.reduxdemo.app.AppStore
+import com.florentmaufras.reduxdemo.chronometers.data.ChronometerState
+import com.florentmaufras.reduxdemo.chronometers.data.ChronometersState
 import com.florentmaufras.reduxdemo.chronometers.ui.ChronometersSection
 import com.florentmaufras.reduxdemo.universities.ui.UniversitiesScreen
 
@@ -35,10 +39,35 @@ fun AppScreen() {
 
     LaunchedEffect(Unit) { store.send(AppAction.OnAppear) }
 
+    AppContent(state) { store.send(it) }
+}
+
+@Composable
+private fun AppContent(
+    state: AppState,
+    dispatch: (AppAction) -> Unit,
+) {
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-        ChronometersSection(state.chronometers) { store.send(AppAction.Chronometers(it)) }
+        ChronometersSection(state.chronometers) { dispatch(AppAction.Chronometers(it)) }
         Box(modifier = Modifier.weight(1f)) {
-            UniversitiesScreen(state.universities) { store.send(AppAction.Universities(it)) }
+            UniversitiesScreen(state.universities) { dispatch(AppAction.Universities(it)) }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AppContentPreview() {
+    AppContent(
+        state = AppState(
+            chronometers = ChronometersState(
+                chronometers = listOf(
+                    ChronometerState(id = 0, elapsedSeconds = 7, isRunning = true),
+                    ChronometerState(id = 1, elapsedSeconds = 125, isRunning = false),
+                ),
+                nextId = 2,
+            ),
+        ),
+        dispatch = {},
+    )
 }
