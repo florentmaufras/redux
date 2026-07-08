@@ -96,7 +96,7 @@ class AppStoreTest {
     }
 
     @Test
-    fun remove_throughRoot_dropsElementAndCancelsItsTicks() = runTest {
+    fun remove_throughRoot_dropsElementAndSurvivorKeepsTicking() = runTest {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val store = store()
 
@@ -107,7 +107,9 @@ class AppStoreTest {
         store.send(AppAction.Chronometers(ChronometersAction.Remove(0)))
         advanceTimeBy(2_000); runCurrent()
 
-        // Removed element gone; survivor kept ticking (1 + 2 = 3) — cancellation composed through scope + forEach.
+        // Remove routes through scope + forEach: the element leaves state and the survivor
+        // keeps ticking (1 + 2 = 3). (That the removed element's tick is actually cancelled is
+        // proven directly in ChronometersStoreTest.remove_stopsRemovedElementTicksButOthersKeepRunning.)
         assertEquals(listOf(1), store.currentState.chronometers.chronometers.map { it.id })
         assertEquals(3, store.currentState.chronometers.chronometers[0].elapsedSeconds)
 
