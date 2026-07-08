@@ -16,6 +16,15 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Published redux library (consumed by :app). Requires GitHub Packages credentials.
+        maven {
+            name = "Redux"
+            url = uri("https://maven.pkg.github.com/florentmaufras/redux")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: System.getenv("GITHUB_USERNAME")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }
 
