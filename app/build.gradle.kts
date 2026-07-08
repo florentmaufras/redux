@@ -53,8 +53,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
 
-    // Redux
-    implementation(project(path = ":redux"))
+    // Redux (published artifact from GitHub Packages)
+    implementation(libs.redux)
 
     // Retrofit
     implementation(libs.retrofit)
