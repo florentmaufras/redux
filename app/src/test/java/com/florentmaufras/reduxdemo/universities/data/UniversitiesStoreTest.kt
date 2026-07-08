@@ -63,4 +63,19 @@ class UniversitiesStoreTest {
         assertEquals(ViewState.Error("boom"), store.currentState.viewState)
         assertEquals(UniversitiesAction.LoadError("boom"), store.receivedActions.last())
     }
+
+    @Test
+    fun openWebsite_invokesInjectedOpenUrl() = runTest {
+        val opened = mutableListOf<String>()
+        val store = TestStore(
+            UniversitiesState(),
+            UniversitiesReducer(universitiesService = service, openUrl = { opened.add(it) }),
+        )
+
+        store.send(UniversitiesAction.OpenWebsite("https://example.com"))
+        advanceUntilIdle()
+
+        // The side effect is testable purely via constructor injection — no Android, no Intent mocking.
+        assertEquals(listOf("https://example.com"), opened)
+    }
 }

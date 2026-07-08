@@ -81,4 +81,40 @@ class ChronometersStoreTest {
 
         store.send(ChronometersAction.PauseAll) // stop the survivor
     }
+
+    @Test
+    fun reset_zeroesElapsedAndStopsTicking() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val store = TestStore(ChronometersState(), chronometersReducer)
+
+        store.send(ChronometersAction.Add) // id 0
+        advanceTimeBy(3_000); runCurrent()
+        assertEquals(3, store.currentState.chronometers[0].elapsedSeconds)
+
+        store.send(ChronometersAction.Chronometer(0, ChronometerAction.Reset))
+        assertEquals(0, store.currentState.chronometers[0].elapsedSeconds)
+        assertEquals(false, store.currentState.chronometers[0].isRunning)
+
+        advanceTimeBy(3_000); runCurrent()
+        assertEquals(0, store.currentState.chronometers[0].elapsedSeconds) // stays at 0, stopped
+    }
+
+    @Test
+    fun pauseThenPlay_resumesTickingFromSameElapsed() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val store = TestStore(ChronometersState(), chronometersReducer)
+
+        store.send(ChronometersAction.Add) // id 0
+        advanceTimeBy(2_000); runCurrent()
+
+        store.send(ChronometersAction.Chronometer(0, ChronometerAction.Pause))
+        advanceTimeBy(2_000); runCurrent()
+        assertEquals(2, store.currentState.chronometers[0].elapsedSeconds) // frozen while paused
+
+        store.send(ChronometersAction.Chronometer(0, ChronometerAction.Play))
+        advanceTimeBy(2_000); runCurrent()
+        assertEquals(4, store.currentState.chronometers[0].elapsedSeconds) // resumed: 2 + 2
+
+        store.send(ChronometersAction.PauseAll) // stop the loop
+    }
 }
