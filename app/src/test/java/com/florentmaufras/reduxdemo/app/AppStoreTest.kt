@@ -77,4 +77,40 @@ class AppStoreTest {
         // No reload: state stays Loaded (a reload would flip viewState to Loading).
         assertEquals(ViewState.Loaded(universities), store.currentState.universities.viewState)
     }
+
+    @Test
+    fun pauseAll_throughRoot_stopsAllChronometers() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val store = store()
+
+        store.send(AppAction.Chronometers(ChronometersAction.Add)) // id 0
+        store.send(AppAction.Chronometers(ChronometersAction.Add)) // id 1
+        advanceTimeBy(1_000); runCurrent()
+        assertEquals(listOf(1, 1), store.currentState.chronometers.chronometers.map { it.elapsedSeconds })
+
+        store.send(AppAction.Chronometers(ChronometersAction.PauseAll))
+        assertEquals(listOf(false, false), store.currentState.chronometers.chronometers.map { it.isRunning })
+
+        advanceTimeBy(3_000); runCurrent()
+        assertEquals(listOf(1, 1), store.currentState.chronometers.chronometers.map { it.elapsedSeconds }) // frozen
+    }
+
+    @Test
+    fun remove_throughRoot_dropsElementAndCancelsItsTicks() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val store = store()
+
+        store.send(AppAction.Chronometers(ChronometersAction.Add)) // id 0
+        store.send(AppAction.Chronometers(ChronometersAction.Add)) // id 1
+        advanceTimeBy(1_000); runCurrent()
+
+        store.send(AppAction.Chronometers(ChronometersAction.Remove(0)))
+        advanceTimeBy(2_000); runCurrent()
+
+        // Removed element gone; survivor kept ticking (1 + 2 = 3) — cancellation composed through scope + forEach.
+        assertEquals(listOf(1), store.currentState.chronometers.chronometers.map { it.id })
+        assertEquals(3, store.currentState.chronometers.chronometers[0].elapsedSeconds)
+
+        store.send(AppAction.Chronometers(ChronometersAction.PauseAll)) // stop the survivor
+    }
 }
