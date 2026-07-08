@@ -35,6 +35,14 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    // Publish the release variant with a sources jar. Declaring it via the AGP publishing
+    // DSL produces a clean, de-duplicated sources jar; the default one otherwise collects
+    // src/main/java as several overlapping source roots and emits copy-overwrite warnings.
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
 }
 
 dependencies {
